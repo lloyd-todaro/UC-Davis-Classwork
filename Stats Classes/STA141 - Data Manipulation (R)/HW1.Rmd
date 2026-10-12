@@ -1,0 +1,968 @@
+---
+title: "HW1"
+subtitle: "STA141A (Professor Gupta)"
+author: "Lloyd Todaro"
+date: "Due 10-12-2026"
+output:
+  pdf_document:
+    toc: true
+geometry: margin=0.8in
+header-includes:
+  - \usepackage{booktabs}
+  - \raggedbottom
+---
+
+```{r, include=FALSE}
+install.packages("tidyverse")
+install.packages("dplyr")
+
+library(dplyr)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.align = "center",
+  out.width = "100%"
+  )
+library(tidyverse)
+```
+
+# 0. Introduction and data preparation
+
+This report explores county-level prison admission rates, and how they changed from 
+2006 to 2014. The 'county-prison-admissions.csv' dataset contains admission counts, admission rates,
+and associated county populations. 'CountyClassifications.csv' contains the economic type of the counties,
+and the population loss status of the counties. 'People.csv' contains the population estimates for the counties, specifically 
+in TotalPopEst2014, which was renamed Population2014.
+
+FIPS identifiers are used to merge the datasets. The use of left joins ensures that all counties in the prison dataset are retained, even if they do not have corresponding entries in the other datasets. The final combined dataset includes county-level prison admission data, classifications, and population estimates for analysis.
+Missing values are preserved 
+```{r, include = FALSE}
+# Data importing - County Prison Admissions
+CountyPrisonAdmin <- read.csv('/Users/lloydtodaro/Desktop/STA141/county-prison-admissions.csv')
+
+dim(CountyPrisonAdmin)
+names(CountyPrisonAdmin)
+str(CountyPrisonAdmin)
+head(CountyPrisonAdmin)
+colSums(is.na(CountyPrisonAdmin))
+summary(CountyPrisonAdmin)
+```
+
+```{r, include = FALSE}
+# Data importing - County Classifications
+CountyClass <- read.csv('/Users/lloydtodaro/Desktop/STA141/CountyClassifications.csv')
+
+dim(CountyClass)
+names(CountyClass)
+str(CountyClass)
+head(CountyClass)
+colSums(is.na(CountyClass))
+summary(CountyClass)
+```
+
+```{r, include = FALSE}
+# Data importing - People
+People <- read.csv('/Users/lloydtodaro/Desktop/STA141/People.csv')
+
+dim(People)
+names(People)
+str(People)
+head(People)
+colSums(is.na(People))
+summary(People)
+```
+
+```{r, include = FALSE}
+prison <- CountyPrisonAdmin
+classifications <- CountyClass
+people <- People
+
+names(classifications)[1] <- "FIPS"
+names(prison)[names(prison) == "fips"] <- "FIPS"
+
+prison$FIPS <- sprintf("%05d", as.integer(prison$FIPS))
+classifications$FIPS <- sprintf("%05d", as.integer(classifications$FIPS))
+people$FIPS <- sprintf("%05d", as.integer(people$FIPS))
+
+people <- people |>
+  filter(FIPS %in% prison$FIPS)
+
+```
+
+```{r, include = FALSE}
+prison$admissions2014 <- as.numeric(
+  gsub(",","", prison$admissions2014)
+)
+# removed commas, now checking for NAs
+class(prison$admissions2014)
+sum(is.na(prison$admissions2014))
+```
+
+```{r, include = FALSE}
+
+class_selected <- classifications |>
+  filter(Attribute %in% c(
+    "RuralUrbanContinuumCode2013",
+    "Metro2013",
+    "Type_2015_Update",
+    "Population_loss_2015_update"
+  )) |>
+  select(FIPS, Attribute, Value)
+
+class_wide <- class_selected |>
+  pivot_wider(names_from = Attribute, values_from = Value) |>
+  mutate(
+    rural_urban = factor(
+      RuralUrbanContinuumCode2013,
+      levels = 1:9,
+      labels = c(
+        "Metro: 1 million or more",
+        "Metro: 250,000-999,999",
+        "Metro: under 250,000",
+        "Nonmetro: 20,000+, adjacent",
+        "Nonmetro: 20,000+, not adjacent",
+        "Nonmetro: 2,500-19,999, adjacent",
+        "Nonmetro: 2,500-19,999, not adjacent",
+        "Nonmetro: under 2,500, adjacent",
+        "Nonmetro: under 2,500, not adjacent"
+      )
+    ),
+    metro_status = factor(
+      Metro2013,
+      levels = c(0, 1),
+      labels = c("Nonmetro", "Metro")
+    ),
+    economic_type = factor(
+      Type_2015_Update,
+      levels = 0:5,
+      labels = c(
+        "Nonspecialized",
+        "Farm-dependent",
+        "Mining-dependent",
+        "Manufacturing-dependent",
+        "Federal/State government-dependent",
+        "Recreation"
+      )
+    ),
+    population_loss = factor(
+      Population_loss_2015_update,
+      levels = c(0, 1),
+      labels = c("Other county", "Population-loss county")
+    )
+  )
+
+people_2014 <- people |>
+  filter(Attribute == "TotalPopEst2014") |>
+  select(FIPS, Population2014 = Value)
+
+anyDuplicated(class_wide$FIPS)
+anyDuplicated(people_2014$FIPS)
+```
+
+```{r, include = FALSE}
+combined <- prison |>
+  left_join(class_wide, by = "FIPS") |>
+  left_join(people_2014, by = "FIPS")
+
+table(classification_match = prison$FIPS %in% class_wide$FIPS)
+table(people_match = prison$FIPS %in% people_2014$FIPS)
+
+prison |>
+  anti_join(class_wide, by = "FIPS") |>
+  select(FIPS, county, state)
+
+prison |>
+  anti_join(people_2014, by = "FIPS") |>
+  select(FIPS, county, state)
+```
+
+```{r, include = FALSE}
+with(combined, table(valid06, is.na(admitsPer10k2006), useNA = "ifany"))
+with(combined, table(valid13, is.na(admitsPer10k2013), useNA = "ifany"))
+with(combined, table(valid14, is.na(admitsPer10k2014), useNA = "ifany"))
+```
+
+```{r, include = FALSE}
+combined |>
+  select(
+    starts_with("admissions"),
+    starts_with("admitsPer10k"),
+    starts_with("population20"),
+    Population2014
+  ) |>
+  summary()
+
+combined |>
+  filter(!is.na(admitsPer10k2014)) |>
+  arrange(desc(admitsPer10k2014)) |>
+  select(
+    FIPS, county, state, admitsPer10k2014,
+    admissions2014, population2014, source
+  ) |>
+  head(10)
+```
+
+# 1. What does prison admission look like for a typical U.S. county?
+
+```{r, results = 'hide'}
+rate2014 <- combined |>
+  filter(!is.na(admitsPer10k2014), valid14 == "TRUE")
+
+rate2014 |>
+  summarise(
+    n = n(),
+    mean = mean(admitsPer10k2014),
+    median = median(admitsPer10k2014),
+    sd = sd(admitsPer10k2014),
+    Q1 = quantile(admitsPer10k2014, 0.25),
+    Q3 = quantile(admitsPer10k2014, 0.75),
+    IQR = IQR(admitsPer10k2014),
+    min = min(admitsPer10k2014),
+    max = max(admitsPer10k2014)
+  )
+```
+
+
+
+```{r, fig.width = 4, fig.height = 3.5, out.width = '48%', fig.show = 'hold'}
+
+ggplot(rate2014, aes(x = admitsPer10k2014)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    binwidth = 5, boundary = 0,
+    fill = "steelblue", color = "white"
+  ) +
+  geom_density(color = "blue") + 
+  labs(
+    title = "Bin width: 5",
+    x = "Admissions per 10,000 residents (2014)",
+    y = "Density"
+  )
+
+ggplot(rate2014, aes(x = admitsPer10k2014)) + 
+  geom_histogram(
+    aes(y = after_stat(density)),
+    binwidth = 10, boundary = 0,
+    fill = "steelblue", color = "white"
+  ) +
+  geom_density(color = "blue") +
+  labs(
+    title = "Bin width: 10",
+    x = "Admissions per 10,000 residents (2014)",
+    y = "Density"
+  )
+```
+
+(explain histogram)
+
+```{r, fig.width=7, fig.height=2}
+ggplot(rate2014, aes(x = admitsPer10k2014, y = "")) +
+  geom_boxplot(fill = "red") +
+  labs(
+    x = "Admissions per 10,000 residents",
+    y = NULL
+  )
+```
+
+# 2. Which counties appear to have the largest prison-admission problem?
+
+```{r, fig.width = 7, fig.height = 3.5}
+count_data <- rate2014 |>
+  filter(!is.na(admissions2014)) |>
+  mutate(county_state = paste(county, state, sep = ", "))
+
+top_counts <- count_data |>
+  slice_max(admissions2014, n = 10)
+
+top_rates <- count_data |>
+  slice_max(admitsPer10k2014, n = 10)
+
+ggplot(top_counts, aes(
+  x = admissions2014,
+  y = reorder(county_state, admissions2014)
+)) +
+  geom_col(fill = "red") + 
+  labs(
+    title = "Counties with the most prison admissions in 2014",
+    x = "Number of admissions",
+    y = NULL
+  )
+
+ggplot(top_rates, aes(
+  x = admitsPer10k2014,
+  y = reorder(county_state, admitsPer10k2014)
+)) +
+  geom_col(fill = "red") + 
+  labs(
+    title = "Counties with the highest prison-admission rates in 2014",
+    x = "Admissions per 10,000 residents",
+    y = NULL
+  )
+```
+
+# 3. How did county prison-admission rates change from 2006 to 2014?
+
+```{r, results = 'hide'}
+change_data <- combined |>
+  filter(
+    !is.na(admitsPer10k2006),
+    !is.na(admitsPer10k2014),
+    valid06 == "TRUE",
+    valid14 == "TRUE"
+  ) |>
+  mutate(change = admitsPer10k2014 - admitsPer10k2006)
+
+change_data |>
+  summarise(
+    n = n(),
+    increases = sum(change > 0),
+    decreases = sum(change < 0),
+    unchanged = sum(change == 0),
+    median = median(change),
+    Q1 = quantile(change, 0.25),
+    Q3 = quantile(change, 0.75),
+    within_10 = sum(abs(change) <= 10)
+  )
+
+change_data |>
+  slice_max(change, n = 3) |>
+  select(county, state, change)
+
+change_data |>
+  slice_min(change, n = 3) |>
+  select(county, state, change)
+```
+
+```{r, fig.width = 7, fig.height = 3.5}
+ggplot(change_data, aes(x = change)) +
+  geom_histogram(
+    binwidth = 5, boundary = 0,
+    fill = "red", color = "white"
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Changes in prison-admission rates (2006-2014)",
+    x = "Change in admissions per 10,000 residents",
+    y = "Number of counties"
+  )
+```
+
+```{r, fig.width = 4, fig.height = 4, out.width = '60%'}
+ggplot(change_data, aes(
+  x = admitsPer10k2006,
+  y = admitsPer10k2014
+)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  coord_equal() +
+  labs(
+    title = "County prison-admission rates",
+    x = "2006 admissions per 10,000 residents",
+    y = "2014 admissions per 10,000 residents"
+  )
+```
+# 4. Do prison-admission patterns differ across the rural-urban continuum?
+
+```{r}
+rural_data <- rate2014 |>
+  filter(!is.na(rural_urban))
+
+rural_data |>
+  group_by(rural_urban) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014),
+    Q1 = quantile(admitsPer10k2014, 0.25),
+    Q3 = quantile(admitsPer10k2014, 0.75)
+  ) |> 
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    col.names = c("Rural-urban category", "Counties", "Median", "Q1", "Q3"),
+    row.names = FALSE,
+    align = "lrrrr"
+  )
+```
+
+```{r, fig.width=7, fig.height=4}
+ggplot(rural_data, aes(
+  x = rural_urban,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  coord_flip() +
+  labs(
+    title = "2014 admission rates across rural-urban categories",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+
+ggplot(rural_data, aes(
+  x = rural_urban,
+  y = admitsPer10k2014
+)) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.3) + 
+  coord_flip() +
+  labs(
+    title = "Individual county admission rates",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+```
+# 5. What do we gain and lose by simplifying rurality to metro versus nonmetro?
+
+```{r}
+metro_data <- rate2014 |>
+  filter(!is.na(metro_status))
+
+metro_data |>
+  group_by(metro_status) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014),
+    Q1 = quantile(admitsPer10k2014, 0.25),
+    Q3 = quantile(admitsPer10k2014, 0.75)
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c("Metro status", "Counties", "Median", "Q1", "Q3"),
+    align = "lrrrr"
+  )
+```
+```{r, fig.width = 7, fig.height = 3}
+ggplot(metro_data, aes(
+  x = metro_status,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  coord_flip() +
+  labs(
+    title = "2014 admission rates in metro and nonmetro counties",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+# 6. Are prison-admission patterns associated with county economic type?
+
+```{r, fig.width = 8, fig.height = 4}
+economic_data <- rate2014 |>
+  filter(!is.na(economic_type), !is.na(metro_status))
+
+economic_data |>
+  group_by(economic_type) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014),
+    IQR = IQR(admitsPer10k2014)
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c("Economic type", "Counties", "Median", "IQR"),
+    align = "lrrr"
+  )
+
+ggplot(economic_data, aes(
+  x = economic_type,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  coord_flip() +
+  labs(
+    title = "2014 admission rates by economic type",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+
+```
+
+```{r, fig.width = 9, fig.height = 4}
+
+economic_data |>
+  group_by(metro_status, economic_type) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014),
+    .groups = "drop"
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c("Metro status", "Economic type", "Counties", "Median"),
+    align = "llrr"
+  )
+
+ggplot(economic_data, aes(
+  x = economic_type,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  coord_flip() +
+  facet_wrap(~ metro_status) +
+  labs(
+    title = "Economic type comparisons within metro and nonmetro counties",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+# 7. Are different economic types equally common across rural and urban America?
+
+```{r, fig.width = 8, fig.height = 4, results = 'hide'}
+type_data <- combined |>
+  filter(!is.na(rural_urban), !is.na(economic_type))
+
+nrow(type_data)
+
+ggplot(type_data, aes(x = rural_urban, fill = economic_type)) + 
+  geom_bar() +
+  coord_flip() +
+  theme(
+  legend.position = "bottom",
+  axis.text.y = element_text(size = 9),
+  legend.text = element_text(size = 9),
+  legend.title = element_text(size = 10)
+) +
+  guides(fill = guide_legend(ncol = 2)) +
+  labs(
+    title = "Economic types across rural-urban categories",
+    x = NULL,
+    y = "Number of counties",
+    fill = "Economic type"
+  )
+```
+
+```{r, fig.width = 8, fig.height = 4}
+ggplot(type_data, aes(x = rural_urban, fill = economic_type)) +
+  geom_bar(position = "fill") +
+  coord_flip() +
+theme(
+  legend.position = "bottom",
+  axis.text.y = element_text(size = 9),
+  legend.text = element_text(size = 9),
+  legend.title = element_text(size = 10)
+  ) +
+  guides(fill = guide_legend(ncol = 2)) +
+  labs(
+    title = "Economic type composition across rural-urban categories",
+    x = NULL,
+    y = "Proportion of counties",
+    fill = "Economic type"
+  )
+```
+
+# 8. Are population-loss counties different?
+
+```{r, fig.width = 7, fig.height = 2.3, results = 'hide'}
+loss_rates <- rate2014 |>
+  filter(!is.na(population_loss))
+
+loss_rates |>
+  group_by(population_loss) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014),
+    IQR = IQR(admitsPer10k2014)
+  )
+
+ggplot(loss_rates, aes(
+  x = population_loss,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  coord_flip() +
+  labs(
+    title = "2014 admission rates by population loss",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+```{r, fig.width = 7, fig.height = 3, results = 'hide'}
+loss_changes <- change_data |>
+  filter(!is.na(population_loss))
+
+loss_changes |>
+  group_by(population_loss) |>
+  summarise(
+    n = n(),
+    median = median(change),
+    IQR = IQR(change)
+  )
+
+ggplot(loss_changes, aes(
+  x = population_loss,
+  y = change
+)) +
+  geom_boxplot(fill = "red") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  coord_flip() +
+  labs(
+    title = "2006-2014 rate changes by population loss",
+    x = NULL,
+    y = "Change in admissions per 10,000 residents"
+  )
+```
+
+# 9. Does county population size help explain the patterns?
+
+```{r, fig.width = 4, fig.height = 3.5, out.width = '49%', fig.show = 'hold'}
+population_data <- rate2014 |>
+  filter(
+    !is.na(people_population2014),
+    people_population2014 > 0
+  )
+
+ggplot(population_data, aes(
+  x = people_population2014,
+  y = admitsPer10k2014,
+)) +
+  geom_point(alpha = 0.25, size = 1) +
+  labs(
+    title = "Population: original scale",
+    x = "2014 population estimate",
+    y = "Admissions per 10,000 residents"
+  )
+ggplot(population_data, aes(
+  x = people_population2014,
+  y = admitsPer10k2014
+)) +
+  geom_point(alpha = 0.3) +
+  scale_x_log10() +
+  labs(
+    title = "Population: log scale",
+    x = "2014 population estimate (log10 scale)",
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+```{r, fig.width = 7, fig.height = 3.5}
+ggplot(population_data, aes(
+  x = people_population2014,
+  y = admitsPer10k2014,
+  color = metro_status
+)) +
+  geom_point(alpha = 0.4) +
+  scale_x_log10() +
+  labs(
+    title = "Population, metro status, and admission rates",
+    x = "2014 population estimate (log10 scale)",
+    y = "Admissions per 10,000 residents",
+    color = "Metro status",
+  )
+```
+
+# 10. Are high prison-admission rates primarily a rural phenomenon, or is the story more complicated?
+
+```{r, fig.width = 8, fig.height = 4.5}
+multi_data <- population_data |>
+  filter(!is.na(metro_status), !is.na(economic_type))
+
+ggplot(multi_data, aes(
+  x = economic_type,
+  y = admitsPer10k2014,
+  fill = metro_status
+)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(
+    title = "Admission rates by economic type and metro status",
+    x = NULL,
+    y = "Admissions per 10,000 residents",
+    fill = "Metro status"
+  )
+```
+
+```{r, fig.width = 9, fig.height = 6}
+ggplot(multi_data, aes(
+  x = people_population2014,
+  y = admitsPer10k2014,
+  color = metro_status
+)) +
+  geom_point(alpha = 0.4, size = 1) +
+  scale_x_log10() +
+  facet_wrap(~ economic_type, ncol = 2) +
+  labs(
+    title = "Population and admission rates within economic types",
+    x = "2014 population estimate (log10 scale)",
+    y = "Admissions per 10,000 residents",
+    color = "Metro status"
+  )
+```
+
+# 11. Which counties deserve individual attention?
+
+```{r}
+cutoff <- quantile(rate2014$admitsPer10k2014, 0.75) +
+  1.5 * IQR(rate2014$admitsPer10k2014)
+
+unusual <- rate2014 |>
+  filter(admitsPer10k2014 > cutoff)
+
+selected <- unusual |>
+  slice_max(admitsPer10k2014, n = 5)
+
+selected |>
+  transmute(
+    County = paste(county, state, sep = ", "),
+    Rate = admitsPer10k2014,
+    Admissions = admissions2014,
+    Population = population2014
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c("County", "Rate", "Admissions", "Population"),
+    align = "lrrr"
+  )
+```
+
+```{r, fig.width = 8, fig.height = 5}
+ggplot(population_data, aes(
+  x = people_population2014,
+  y = admitsPer10k2014
+)) +
+  geom_point(alpha = 0.2) +
+  geom_point(
+    data = selected,
+    color = "blue", size = 3
+  ) +
+  geom_text(
+    data = selected,
+    aes(label = county),
+    hjust = 0, angle = 25, size = 3
+  ) +
+  geom_hline(
+    yintercept = cutoff,
+    linetype = "dashed"
+  ) +
+  scale_x_log10() +
+  scale_y_continuous(
+    expand = expansion(mult = c(0.05, 0.2))
+  ) +
+  labs(
+    title = "Counties with exceptionally high admission rates",
+    x = "2014 population estimate (log10 scale)",
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+# 12. Is Dearborn County unusual even when compared with counties like itself?
+
+```{r}
+dearborn <- rate2014 |>
+  filter(FIPS == "18029")
+
+others <- rate2014 |>
+  filter(FIPS != dearborn$FIPS)
+
+comparisons <- bind_rows(
+  "All U.S. counties" = others,
+  
+  "Indiana" = others |>
+    filter(state == "IN"),
+  
+  "Similar population" = others |>
+    filter(
+      people_population2014 >= 0.75 * dearborn$people_population2014,
+      people_population2014 <= 1.25 * dearborn$people_population2014,
+    ),
+  
+  "Same rural-urban category" = others |>
+    filter(rural_urban == dearborn$rural_urban),
+  
+  "Same economic type" = others |>
+    filter(economic_type == dearborn$economic_type),
+  
+  "Same rural-urban and economic type" = others |>
+    filter(
+      rural_urban == dearborn$rural_urban,
+      economic_type == dearborn$economic_type
+    ),
+  
+  .id = "reference_group"
+)
+
+comparisons |>
+  group_by(reference_group) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014),
+    maximum = max(admitsPer10k2014)
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c("Reference group", "Counties", "Median", "Maximum"),
+    align = "lrrr"
+  )
+```
+
+```{r, fig.width = 9, fig.height = 4.5}
+ggplot(comparisons, aes(
+  x = reference_group,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  geom_hline(
+    yintercept = dearborn$admitsPer10k2014,
+    color = "blue", linetype = "dashed"
+  ) +
+    scale_x_discrete(
+    labels = function(x) stringr::str_wrap(x, width = 28)
+  ) +
+  coord_flip() +
+  labs(
+    title = "Dearborn compared with alternative reference groups",
+    subtitle = "Blue dashed line: Dearborn's 2014 rate",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+```
+# 13. What does the prison-admission story look like in our own county - Yolo County, California?
+
+```{r, fig.width = 7, fig.height = 3.5, results = 'hide'}
+yolo <- combined |>
+  filter(FIPS == "06113")
+
+yolo_time <- data.frame(
+  year = c(2006, 2013, 2014),
+  admissions = c(
+    yolo$admissions2006,
+    yolo$admissions2013,
+    yolo$admissions2014
+  ),
+  rate = c(
+    yolo$admitsPer10k2006,
+    yolo$admitsPer10k2013,
+    yolo$admitsPer10k2014
+  )
+)
+
+yolo_time
+
+
+ggplot(yolo_time, aes(x = year, y = rate)) +
+  geom_line() +
+  geom_point(color = "blue", size = 3) +
+  scale_x_continuous(breaks = c(2006, 2013, 2014)) +
+  labs(
+    title = "Yolo County prison admission rates",
+    x = "Year",
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+```{r}
+yolo_others <- rate2014 |>
+  filter(FIPS != yolo$FIPS)
+
+yolo_groups <- bind_rows(
+  "All U.S. counties" = yolo_others,
+  
+  "California" = yolo_others |>
+    filter(state == "CA"),
+  
+  "Similar population" = yolo_others |>
+    filter(
+      people_population2014 >= 0.75 * yolo$people_population2014,
+      people_population2014 <= 1.25 * yolo$people_population2014
+    ),
+  
+  "Same rural-urban category" = yolo_others |>
+    filter(rural_urban == yolo$rural_urban),
+  
+  "Same economic type" = yolo_others |>
+    filter(economic_type == yolo$economic_type),
+  
+  "California population and rural-urban peers" = yolo_others |>
+    filter(
+      state == "CA",
+      rural_urban == yolo$rural_urban,
+      people_population2014 >= 0.5 * yolo$people_population2014,
+      people_population2014 <= 2 * yolo$people_population2014
+    ),
+  
+  .id = "reference_group"
+)
+
+yolo_groups |>
+  group_by(reference_group) |>
+  summarise(
+    n = n(),
+    median = median(admitsPer10k2014)
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c("Reference group", "Counties", "Median"),
+    align = "lrr"
+  )
+```
+
+```{r, fig.width = 10, fig.height = 4.5}
+ggplot(yolo_groups, aes(
+  x = reference_group,
+  y = admitsPer10k2014
+)) +
+  geom_boxplot(fill = "red") +
+  geom_hline(
+    yintercept = yolo$admitsPer10k2014,
+    color = "blue", linetype = "dashed"
+  ) +
+    scale_x_discrete(
+    labels = function(x) stringr::str_wrap(x, width = 28)
+  ) +
+  coord_flip() +
+  labs(
+    title = "Yolo County in context",
+    subtitle = "Blue dashed line: Yolo's 2014 rate",
+    x = NULL,
+    y = "Admissions per 10,000 residents"
+  )
+```
+
+```{r, fig.width = 7, fig.height = 2.5}
+metro_summary <- metro_data |>
+  group_by(metro_status) |>
+  summarise(
+    median = median(admitsPer10k2014),
+    .groups = "drop"
+  )
+
+ggplot(metro_summary, aes(
+  x = median,
+  y = metro_status
+)) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_text(
+    aes(label = sprintf("%.2f", median)),
+    vjust = -0.8
+  ) +
+  scale_x_continuous(limits = c(0, 25)) +
+  labs(
+    title = "Median 2014 admission rates",
+    x = "Median admissions per 10,000 residents",
+    y = NULL
+  )
+  ```
+
+  # 15. When does adding aesthetics make a graph worse?
+
