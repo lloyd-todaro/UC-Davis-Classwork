@@ -982,6 +982,8 @@ ggplot(yolo_ts, aes(x = year, y = rate)) +
   )
 ```
 
+
+
 ```{r}
 yolo_oth <- d14 |>
   filter(FIPS != yolo$FIPS)
@@ -1036,7 +1038,8 @@ ggplot(yolo_grp, aes(
   x = reference_group,
   y = rate14
 )) +
-  geom_boxplot(fill = "red") +
+  geom_violin(fill = "red", alpha = 0.6, scale = "width") +
+  geom_boxplot(width = 0.12, outlier.shape = NA) +
   geom_hline(
     yintercept = yolo$rate14,
     color = "blue", linetype = "dashed"
@@ -1052,6 +1055,9 @@ ggplot(yolo_grp, aes(
     y = "Admissions per 10,000 residents"
   )
 ```
+
+Yolo County's 2014 rate (about 12.8 per 10,000, the dashed line) is below the median of every national comparison group (about 17 to 20) and sits near the 25th to 36th percentile of those groups, so it is a fairly low-admission county nationally. It is a bit above the California median (about 9.2) and above 73% of California counties. The only group where it is clearly high is the small California peer group (3 counties, median about 6), which is too small to say much. Its rate also dropped a lot from about 51.8 in 2006.
+
 
 ```{r, fig.width = 7, fig.height = 2.5}
 metro_sum <- metro_df |>
@@ -1080,3 +1086,91 @@ ggplot(metro_sum, aes(
 
 # 15. When does adding aesthetics make a graph worse?
 
+```{r, fig.width = 11, fig.height = 7}
+busy_df <- multi_df |>
+  left_join(select(chg_df, FIPS, change), by = "FIPS") |>
+  filter(!is.na(change), !is.na(adm14), !is.na(pop_loss))
+
+ggplot(busy_df, aes(
+  x = pop_est,
+  y = rate14,
+  color = econ_type,
+  shape = setting,
+  size = adm14,
+  alpha = abs(change)
+)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_size_area(max_size = 7) +
+  scale_alpha_continuous(range = c(0.15, 1)) +
+  facet_wrap(~ pop_loss) +
+  labs(
+    title = "Too many aesthetics at once",
+    x = "2014 population estimate (log10 scale)",
+    y = "Admissions per 10,000 residents (2014)",
+    color = "Economic type",
+    shape = "Metro setting",
+    size = "Admissions (2014)",
+    alpha = "|Change in rate|"
+  )
+```
+
+This graph maps seven variables at once: population (x), admission rate (y), economic type (color), metro setting (shape), number of admissions (size), the size of the rate change from 2006 (alpha), and population loss (facets). Each one is easy to read on its own, but together they make the graph have tons of clutter and be borderline impossible to interperet. The whole point of data visualization is to provide an intuition which can accompany statistical analysis and also to build an understanding of the data for the analyst, this graphs does the opposite.
+
+# 16. Formulate and investigate your own substantive question.
+
+Are nonmetro or metro counties more likely to experience an increase in people between 2006 and 2014? 
+
+```{r}
+# population change 2006-2014, using the county populations in the prison file
+growth_df <- combined |>
+  filter(!is.na(metro), !is.na(pop06), !is.na(pop14), pop06 > 0) |>
+  mutate(
+    grew = pop14 > pop06,
+    pct_change = (pop14 - pop06) / pop06 * 100
+  )
+
+# data summary: metro vs. nonmetro
+growth_df |>
+  group_by(metro) |>
+  summarise(
+    n = n(),
+    grew = sum(grew),
+    prop_grew = mean(grew),
+    median_pct_change = median(pct_change),
+    Q1 = quantile(pct_change, 0.25),
+    Q3 = quantile(pct_change, 0.75)
+  ) |>
+  knitr::kable(
+    format = "latex",
+    booktabs = TRUE,
+    digits = 2,
+    row.names = FALSE,
+    col.names = c(
+      "Metro status", "Counties", "Grew", "Share that grew",
+      "Median % change", "Q1", "Q3"
+    ),
+    align = "lrrrrrr"
+  )
+```
+
+```{r, fig.width = 8, fig.height = 4.5}
+growth_df |>
+  filter(!is.na(ru)) |>
+  group_by(ru, metro) |>
+  summarise(prop_grew = mean(grew), n = n(), .groups = "drop") |>
+  ggplot(aes(x = prop_grew, y = ru, fill = metro)) +
+  geom_col() +
+  geom_text(aes(label = paste0("n = ", n)), hjust = 1.1, size = 3, color = "white") +
+  geom_vline(xintercept = 0.5, linetype = "dashed") +
+  scale_x_continuous(labels = scales::percent) +
+  labs(
+    title = "Share of counties whose population grew, 2006-2014",
+    subtitle = "Dashed line: half of counties grew",
+    x = "Share of counties with a population increase",
+    y = NULL,
+    fill = "Metro status"
+  )
+```
+
+Metro counties were much more likely to gain people: about 77% of metro counties grew between 2006 and 2014, compared with about 45% of nonmetro counties. The typical median metro county grew by about 4.4%, while the typical nonmetro county shrank slightly, about -0.7%. The pattern also follows size along the continuum. Growth is most common in the largest metro counties (about 85%) and least common in the smallest nonmetro counties (about 33%), and being adjacent to a metro area makes little difference among the smallest counties. This is descriptive: we only compare counties' total populations in 2006 and 2014 and do not explain why they changed.
