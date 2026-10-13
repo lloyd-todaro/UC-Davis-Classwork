@@ -13,8 +13,6 @@ header-includes:
 ---
 
 ```{r, include=FALSE}
-install.packages("tidyverse")
-install.packages("dplyr")
 
 library(dplyr)
 ```
@@ -30,60 +28,67 @@ library(tidyverse)
 
 # 0. Introduction and data preparation
 
-This report explores county-level prison admission rates, and how they changed from 
-2006 to 2014. The 'county-prison-admissions.csv' dataset contains admission counts, admission rates,
-and associated county populations. 'CountyClassifications.csv' contains the economic type of the counties,
-and the population loss status of the counties. 'People.csv' contains the population estimates for the counties, specifically 
-in TotalPopEst2014, which was renamed Population2014.
+This report explores county-level prison admission rates and how they changed from 2006 to 2014. Three datasets are used. 'county-prison-admissions.csv' contains admission counts, admission rates per 10,000 residents (`rate06`, `rate13`, `rate14`), and the county populations used to compute them. 'CountyClassifications.csv' contains the urban status of the county, metro status, economic type, and population-loss. 'People.csv' contains county population estimates, of which only TotalPopEst2014 is used (renamed `pop_est`).
 
-FIPS identifiers are used to merge the datasets. The use of left joins ensures that all counties in the prison dataset are retained, even if they do not have corresponding entries in the other datasets. The final combined dataset includes county-level prison admission data, classifications, and population estimates for analysis.
-Missing values are preserved 
+**Data preparation.** Column names were shortened (e.g. `admitsPer10k2014` became `rate14`). FIPS codes were converted to five-digit, zero-padded strings so the three datasets match on the same key, and the classification and population files were reshaped from long to wide format with one row per county. The numeric codes in the classification file were converted to labeled factors. Commas were removed from `adm14` so it could be converted to a number. The datasets were merged with left joins on FIPS, so every county in the prison dataset is kept even if it has no match in the other two. Counties without a match have missing classification or population values.
+
+**Handling of missing and invalid data.** Missing values are kept as missing and not imputed. The prison dataset flags whether each year's rate is valid (`valid06`, `valid13`, `valid14`), so the analyses use only counties with a valid, non-missing rate for the year(s) in question. The number of counties used is reported with each summary. Because rates are highly right-skewed, medians and IQRs are used alongside means, and log scales are used where population varies widely.
+
+**Limitations.** Analyses are descriptive: a difference between groups does not show that rurality, economic type, or population loss causes the difference. Rates for very small counties are unstable because a few admissions can move the rate a lot. The data covers only 2006, 2013, and 2014.
+
 ```{r, include = FALSE}
 # Data importing - County Prison Admissions
-CountyPrisonAdmin <- read.csv('/Users/lloydtodaro/Desktop/STA141/county-prison-admissions.csv')
+raw_prison <- read.csv('/Users/lloydtodaro/Desktop/STA141/county-prison-admissions.csv')
 
-dim(CountyPrisonAdmin)
-names(CountyPrisonAdmin)
-str(CountyPrisonAdmin)
-head(CountyPrisonAdmin)
-colSums(is.na(CountyPrisonAdmin))
-summary(CountyPrisonAdmin)
+dim(raw_prison)
+names(raw_prison)
+str(raw_prison)
+head(raw_prison)
+colSums(is.na(raw_prison))
+summary(raw_prison)
 ```
 
 ```{r, include = FALSE}
 # Data importing - County Classifications
-CountyClass <- read.csv('/Users/lloydtodaro/Desktop/STA141/CountyClassifications.csv')
+raw_class <- read.csv('/Users/lloydtodaro/Desktop/STA141/CountyClassifications.csv')
 
-dim(CountyClass)
-names(CountyClass)
-str(CountyClass)
-head(CountyClass)
-colSums(is.na(CountyClass))
-summary(CountyClass)
+dim(raw_class)
+names(raw_class)
+str(raw_class)
+head(raw_class)
+colSums(is.na(raw_class))
+summary(raw_class)
 ```
 
 ```{r, include = FALSE}
 # Data importing - People
-People <- read.csv('/Users/lloydtodaro/Desktop/STA141/People.csv')
+raw_people <- read.csv('/Users/lloydtodaro/Desktop/STA141/People.csv')
 
-dim(People)
-names(People)
-str(People)
-head(People)
-colSums(is.na(People))
-summary(People)
+dim(raw_people)
+names(raw_people)
+str(raw_people)
+head(raw_people)
+colSums(is.na(raw_people))
+summary(raw_people)
 ```
 
 ```{r, include = FALSE}
-prison <- CountyPrisonAdmin
-classifications <- CountyClass
-people <- People
+prison <- raw_prison
+cls <- raw_class
+people <- raw_people
 
-names(classifications)[1] <- "FIPS"
+names(cls)[1] <- "FIPS"
 names(prison)[names(prison) == "fips"] <- "FIPS"
 
+prison <- prison |>
+  rename(
+    rate06 = admitsPer10k2006, rate13 = admitsPer10k2013, rate14 = admitsPer10k2014,
+    adm06 = admissions2006, adm13 = admissions2013, adm14 = admissions2014,
+    pop06 = population2006, pop13 = population2013, pop14 = population2014
+  )
+
 prison$FIPS <- sprintf("%05d", as.integer(prison$FIPS))
-classifications$FIPS <- sprintf("%05d", as.integer(classifications$FIPS))
+cls$FIPS <- sprintf("%05d", as.integer(cls$FIPS))
 people$FIPS <- sprintf("%05d", as.integer(people$FIPS))
 
 people <- people |>
@@ -92,17 +97,17 @@ people <- people |>
 ```
 
 ```{r, include = FALSE}
-prison$admissions2014 <- as.numeric(
-  gsub(",","", prison$admissions2014)
+prison$adm14 <- as.numeric(
+  gsub(",","", prison$adm14)
 )
 # removed commas, now checking for NAs
-class(prison$admissions2014)
-sum(is.na(prison$admissions2014))
+class(prison$adm14)
+sum(is.na(prison$adm14))
 ```
 
 ```{r, include = FALSE}
 
-class_selected <- classifications |>
+cls_sel <- cls |>
   filter(Attribute %in% c(
     "RuralUrbanContinuumCode2013",
     "Metro2013",
@@ -111,10 +116,10 @@ class_selected <- classifications |>
   )) |>
   select(FIPS, Attribute, Value)
 
-class_wide <- class_selected |>
+cls_wide <- cls_sel |>
   pivot_wider(names_from = Attribute, values_from = Value) |>
   mutate(
-    rural_urban = factor(
+    ru = factor(
       RuralUrbanContinuumCode2013,
       levels = 1:9,
       labels = c(
@@ -129,12 +134,12 @@ class_wide <- class_selected |>
         "Nonmetro: under 2,500, not adjacent"
       )
     ),
-    metro_status = factor(
+    metro = factor(
       Metro2013,
       levels = c(0, 1),
       labels = c("Nonmetro", "Metro")
     ),
-    economic_type = factor(
+    econ_type = factor(
       Type_2015_Update,
       levels = 0:5,
       labels = c(
@@ -146,60 +151,59 @@ class_wide <- class_selected |>
         "Recreation"
       )
     ),
-    population_loss = factor(
+    pop_loss = factor(
       Population_loss_2015_update,
       levels = c(0, 1),
       labels = c("Other county", "Population-loss county")
     )
   )
 
-people_2014 <- people |>
+pop_tbl <- people |>
   filter(Attribute == "TotalPopEst2014") |>
-  select(FIPS, Population2014 = Value)
+  select(FIPS, pop_est = Value)
 
-anyDuplicated(class_wide$FIPS)
-anyDuplicated(people_2014$FIPS)
+anyDuplicated(cls_wide$FIPS)
+anyDuplicated(pop_tbl$FIPS)
 ```
 
 ```{r, include = FALSE}
 combined <- prison |>
-  left_join(class_wide, by = "FIPS") |>
-  left_join(people_2014, by = "FIPS")
+  left_join(cls_wide, by = "FIPS") |>
+  left_join(pop_tbl, by = "FIPS")
 
-table(classification_match = prison$FIPS %in% class_wide$FIPS)
-table(people_match = prison$FIPS %in% people_2014$FIPS)
+table(classification_match = prison$FIPS %in% cls_wide$FIPS)
+table(people_match = prison$FIPS %in% pop_tbl$FIPS)
 
 prison |>
-  anti_join(class_wide, by = "FIPS") |>
+  anti_join(cls_wide, by = "FIPS") |>
   select(FIPS, county, state)
 
 prison |>
-  anti_join(people_2014, by = "FIPS") |>
+  anti_join(pop_tbl, by = "FIPS") |>
   select(FIPS, county, state)
 ```
 
 ```{r, include = FALSE}
-with(combined, table(valid06, is.na(admitsPer10k2006), useNA = "ifany"))
-with(combined, table(valid13, is.na(admitsPer10k2013), useNA = "ifany"))
-with(combined, table(valid14, is.na(admitsPer10k2014), useNA = "ifany"))
+with(combined, table(valid06, is.na(rate06), useNA = "ifany"))
+with(combined, table(valid13, is.na(rate13), useNA = "ifany"))
+with(combined, table(valid14, is.na(rate14), useNA = "ifany"))
 ```
 
 ```{r, include = FALSE}
 combined |>
   select(
-    starts_with("admissions"),
-    starts_with("admitsPer10k"),
-    starts_with("population20"),
-    Population2014
+    starts_with("adm"),
+    starts_with("rate"),
+    pop06, pop13, pop14, pop_est
   ) |>
   summary()
 
 combined |>
-  filter(!is.na(admitsPer10k2014)) |>
-  arrange(desc(admitsPer10k2014)) |>
+  filter(!is.na(rate14)) |>
+  arrange(desc(rate14)) |>
   select(
-    FIPS, county, state, admitsPer10k2014,
-    admissions2014, population2014, source
+    FIPS, county, state, rate14,
+    adm14, pop14, source
   ) |>
   head(10)
 ```
@@ -207,28 +211,28 @@ combined |>
 # 1. What does prison admission look like for a typical U.S. county?
 
 ```{r, results = 'hide'}
-rate2014 <- combined |>
-  filter(!is.na(admitsPer10k2014), valid14 == "TRUE")
+d14 <- combined |>
+  filter(!is.na(rate14), valid14 == "TRUE")
 
-rate2014 |>
+d14 |>
   summarise(
     n = n(),
-    mean = mean(admitsPer10k2014),
-    median = median(admitsPer10k2014),
-    sd = sd(admitsPer10k2014),
-    Q1 = quantile(admitsPer10k2014, 0.25),
-    Q3 = quantile(admitsPer10k2014, 0.75),
-    IQR = IQR(admitsPer10k2014),
-    min = min(admitsPer10k2014),
-    max = max(admitsPer10k2014)
+    mean = mean(rate14),
+    median = median(rate14),
+    sd = sd(rate14),
+    Q1 = quantile(rate14, 0.25),
+    Q3 = quantile(rate14, 0.75),
+    IQR = IQR(rate14),
+    min = min(rate14),
+    max = max(rate14)
   )
 ```
 
-
+Out of the 2,428 counties observed with valid rates, the mean was roughly 24 admissions per 10,000 residents, and the median was around 19.8. The $Q_1$ was 12.68 and the $Q_3$ was 30.88, so the interquartile range was 18.2. The standard deviation was 21.5, and the minimum and maximum were 0 and 187.6, respectively. Please note that the mean exceeds the median, indicating a right skewness. Additionally, the standard deviation is estimated to be nearly as large as the mean, so the data is quite varied.
 
 ```{r, fig.width = 4, fig.height = 3.5, out.width = '48%', fig.show = 'hold'}
 
-ggplot(rate2014, aes(x = admitsPer10k2014)) +
+ggplot(d14, aes(x = rate14)) +
   geom_histogram(
     aes(y = after_stat(density)),
     binwidth = 5, boundary = 0,
@@ -241,7 +245,7 @@ ggplot(rate2014, aes(x = admitsPer10k2014)) +
     y = "Density"
   )
 
-ggplot(rate2014, aes(x = admitsPer10k2014)) + 
+ggplot(d14, aes(x = rate14)) + 
   geom_histogram(
     aes(y = after_stat(density)),
     binwidth = 10, boundary = 0,
@@ -255,33 +259,62 @@ ggplot(rate2014, aes(x = admitsPer10k2014)) +
   )
 ```
 
-(explain histogram)
+The right tail of the histogram can be seen in both choices of bin width. Most if not all of the needed information is captured by the bin width 5 histpgram, so for the sake of readability I would stick with that one. This data appears to be far from normally distributed, so I will addittionally transform it and re-plot.
+
+```{r, fig.width = 4, fig.height = 3.5, out.width = '48%'}
+# log transform: rates are right-skewed with no zeros
+d14 <- d14 |>
+  mutate(log_rate14 = log(rate14))
+
+ggplot(d14, aes(x = log_rate14)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    binwidth = 0.25, boundary = 0,
+    fill = "steelblue", color = "white"
+  ) +
+  geom_density(color = "blue") +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = mean(d14$log_rate14), sd = sd(d14$log_rate14)),
+    color = "red", linetype = "dashed"
+  ) +
+  labs(
+    title = "Log-transformed rates",
+    x = "log(admissions per 10,000 residents), 2014",
+    y = "Density"
+  )
+```
+
+As we see, a log transformation of the data makes it appear closer to normally distributed. Due to the heavy skew I would do this before performing exploratory data analysis such as ANOVA. 
 
 ```{r, fig.width=7, fig.height=2}
-ggplot(rate2014, aes(x = admitsPer10k2014, y = "")) +
-  geom_boxplot(fill = "red") +
+ggplot(d14, aes(x = rate14, y = "")) +
+  stat_boxplot(geom = "errorbar", width = 0.3) +
+  geom_boxplot(fill = "red", outlier.alpha = 0.4) +
   labs(
     x = "Admissions per 10,000 residents",
     y = NULL
   )
 ```
 
+We can see the right skew more visibly in the original histogram, but it's still clear in the boxplot. The boxplot makes it more clear how many outliers there are, potentially explaining some of the skewness. 
+
 # 2. Which counties appear to have the largest prison-admission problem?
 
 ```{r, fig.width = 7, fig.height = 3.5}
-count_data <- rate2014 |>
-  filter(!is.na(admissions2014)) |>
+cnt_df <- d14 |>
+  filter(!is.na(adm14)) |>
   mutate(county_state = paste(county, state, sep = ", "))
 
-top_counts <- count_data |>
-  slice_max(admissions2014, n = 10)
+top_cnt <- cnt_df |>
+  slice_max(adm14, n = 10)
 
-top_rates <- count_data |>
-  slice_max(admitsPer10k2014, n = 10)
+top_rate <- cnt_df |>
+  slice_max(rate14, n = 10)
 
-ggplot(top_counts, aes(
-  x = admissions2014,
-  y = reorder(county_state, admissions2014)
+ggplot(top_cnt, aes(
+  x = adm14,
+  y = reorder(county_state, adm14)
 )) +
   geom_col(fill = "red") + 
   labs(
@@ -290,9 +323,9 @@ ggplot(top_counts, aes(
     y = NULL
   )
 
-ggplot(top_rates, aes(
-  x = admitsPer10k2014,
-  y = reorder(county_state, admitsPer10k2014)
+ggplot(top_rate, aes(
+  x = rate14,
+  y = reorder(county_state, rate14)
 )) +
   geom_col(fill = "red") + 
   labs(
@@ -302,19 +335,21 @@ ggplot(top_rates, aes(
   )
 ```
 
+As we see in the bar plot above, the county with the very highest prison admission rate in 2014 was significantly higher than those that came before it. I priotitize rates, because high populations would disproportionately affect the number of admissions. That being said, both are needed for the full picture, so I can see if some places that have notably high or low rates are being caused by having too small of a population.
+
 # 3. How did county prison-admission rates change from 2006 to 2014?
 
 ```{r, results = 'hide'}
-change_data <- combined |>
+chg_df <- combined |>
   filter(
-    !is.na(admitsPer10k2006),
-    !is.na(admitsPer10k2014),
+    !is.na(rate06),
+    !is.na(rate14),
     valid06 == "TRUE",
     valid14 == "TRUE"
   ) |>
-  mutate(change = admitsPer10k2014 - admitsPer10k2006)
+  mutate(change = rate14 - rate06)
 
-change_data |>
+chg_df |>
   summarise(
     n = n(),
     increases = sum(change > 0),
@@ -326,56 +361,67 @@ change_data |>
     within_10 = sum(abs(change) <= 10)
   )
 
-change_data |>
+chg_df |>
   slice_max(change, n = 3) |>
   select(county, state, change)
 
-change_data |>
+chg_df |>
   slice_min(change, n = 3) |>
   select(county, state, change)
 ```
 
 ```{r, fig.width = 7, fig.height = 3.5}
-ggplot(change_data, aes(x = change)) +
+ggplot(chg_df, aes(x = change)) +
   geom_histogram(
     binwidth = 5, boundary = 0,
     fill = "red", color = "white"
   ) +
+  geom_density(
+    aes(y = after_stat(count) * 5),
+    color = "blue", linewidth = 1
+  ) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(
     title = "Changes in prison-admission rates (2006-2014)",
-    x = "Change in admissions per 10,000 residents",
+    x = "Change in admissions per 10,000 residents (2014 rate - 2006 rate)",
     y = "Number of counties"
   )
 ```
 
+Out of the countries which had data for both 2006 and 2014, a slight majority, around 57%, had an increase in rates. The variation was quite thin, with a median change of 1.44, and a total interquartile range of 10.2. The maximum increase was 90.5, and the maximum decrease was -60.6. Around 1,000 counties had a change of less than 10 admissions per 10,000 residents, which is around 41% of the counties with data for both years.
+
 ```{r, fig.width = 4, fig.height = 4, out.width = '60%'}
-ggplot(change_data, aes(
-  x = admitsPer10k2006,
-  y = admitsPer10k2014
-)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(slope = 1, intercept = 0, color = "red") +
-  coord_equal() +
+chg_df |>
+  pivot_longer(
+    c(rate06, rate14),
+    names_to = "year", values_to = "rate"
+  ) |>
+  mutate(year = recode(year, rate06 = "2006", rate14 = "2014")) |>
+  ggplot(aes(x = year, y = rate)) +
+  stat_boxplot(geom = "errorbar", width = 0.3) +
+  geom_boxplot(fill = "red", outlier.alpha = 0.4) +
   labs(
-    title = "County prison-admission rates",
-    x = "2006 admissions per 10,000 residents",
-    y = "2014 admissions per 10,000 residents"
+    title = "County prison-admission rates, 2006 vs. 2014",
+    x = "Year",
+    y = "Admissions per 10,000 residents"
   )
 ```
+
+Based on the visual the statistical significance (or lack thereof) is very difficult to verify. To the naked eye the side by side box plots seem to indicate not only similar medians but also near-identical distributions. This conjecture is also backed up by the lack of skew in the histograms above.
+
 # 4. Do prison-admission patterns differ across the rural-urban continuum?
 
 ```{r}
-rural_data <- rate2014 |>
-  filter(!is.na(rural_urban))
+ru_df <- d14 |>
+  filter(!is.na(ru))
 
-rural_data |>
-  group_by(rural_urban) |>
+ru_df |>
+  group_by(ru) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014),
-    Q1 = quantile(admitsPer10k2014, 0.25),
-    Q3 = quantile(admitsPer10k2014, 0.75)
+    median = median(rate14),
+    Q1 = quantile(rate14, 0.25),
+    Q3 = quantile(rate14, 0.75)
   ) |> 
   knitr::kable(
     format = "latex",
@@ -387,44 +433,36 @@ rural_data |>
   )
 ```
 
-```{r, fig.width=7, fig.height=4}
-ggplot(rural_data, aes(
-  x = rural_urban,
-  y = admitsPer10k2014
+```{r, fig.width=7, fig.height=4.5}
+ggplot(ru_df, aes(
+  x = ru,
+  y = rate14
 )) +
-  geom_boxplot(fill = "red") +
+  geom_violin(fill = "red", alpha = 0.6, scale = "width") +
+  geom_boxplot(width = 0.12, outlier.shape = NA) +
   coord_flip() +
   labs(
     title = "2014 admission rates across rural-urban categories",
     x = NULL,
     y = "Admissions per 10,000 residents"
   )
-
-ggplot(rural_data, aes(
-  x = rural_urban,
-  y = admitsPer10k2014
-)) +
-  geom_jitter(width = 0.2, height = 0, alpha = 0.3) + 
-  coord_flip() +
-  labs(
-    title = "Individual county admission rates",
-    x = NULL,
-    y = "Admissions per 10,000 residents"
-  )
 ```
+
+The distributions look similar across all nine rural-urban categories: each has most counties between roughly 10 and 35 admissions per 10,000 residents and a long right tail, so rurality alone does not separate counties very cleanly. The medians range only from about 17 (counties in a metro area of 1 million or more) to about 25.5 (nonmetro counties with 20,000+ residents that are not adjacent to a metro area). The medians of the more urban categories (17 to 19) are slightly lower than those of the nonmetro categories with at least 2,500 residents (21 to 25.5). The smallest nonmetro counties, however, have medians (about 18 to 19) close to the largest metro counties. The spread is also larger in the 2,500-19,999 nonmetro counties (IQR of about 22) than in the metro counties (IQR of 14 to 18). The most extreme counties are not concentrated in one group of the continuum, though the single highest rate, about 225, is in the most rural category (under 2,500, not adjacent). That category also has the strongest skew, which is driven by that one county. Overall, rural counties tend to have somewhat higher and more variable admission rates, but the overlap between categories is large, so being rural does not by itself predict a high rate.
+
 # 5. What do we gain and lose by simplifying rurality to metro versus nonmetro?
 
 ```{r}
-metro_data <- rate2014 |>
-  filter(!is.na(metro_status))
+metro_df <- d14 |>
+  filter(!is.na(metro))
 
-metro_data |>
-  group_by(metro_status) |>
+metro_df |>
+  group_by(metro) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014),
-    Q1 = quantile(admitsPer10k2014, 0.25),
-    Q3 = quantile(admitsPer10k2014, 0.75)
+    median = median(rate14),
+    Q1 = quantile(rate14, 0.25),
+    Q3 = quantile(rate14, 0.75)
   ) |>
   knitr::kable(
     format = "latex",
@@ -435,10 +473,13 @@ metro_data |>
     align = "lrrrr"
   )
 ```
+
+Making this simplification loses us information about the different incarceration rates of each of the nin rural-urban continuum. On the other hand we do see results which appear a bit more descriptive and they capture what might be the true essence of the data: rural area have higher incarceration rates. The differences in median and mean are more striking without the noise of all the categories. I would choose this one to put in a final analysis, after having seen both. 
+
 ```{r, fig.width = 7, fig.height = 3}
-ggplot(metro_data, aes(
-  x = metro_status,
-  y = admitsPer10k2014
+ggplot(metro_df, aes(
+  x = metro,
+  y = rate14
 )) +
   geom_boxplot(fill = "red") +
   coord_flip() +
@@ -449,18 +490,20 @@ ggplot(metro_data, aes(
   )
 ```
 
+
+
 # 6. Are prison-admission patterns associated with county economic type?
 
 ```{r, fig.width = 8, fig.height = 4}
-economic_data <- rate2014 |>
-  filter(!is.na(economic_type), !is.na(metro_status))
+econ_df <- d14 |>
+  filter(!is.na(econ_type), !is.na(metro))
 
-economic_data |>
-  group_by(economic_type) |>
+econ_df |>
+  group_by(econ_type) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014),
-    IQR = IQR(admitsPer10k2014)
+    median = median(rate14),
+    IQR = IQR(rate14)
   ) |>
   knitr::kable(
     format = "latex",
@@ -471,11 +514,12 @@ economic_data |>
     align = "lrrr"
   )
 
-ggplot(economic_data, aes(
-  x = economic_type,
-  y = admitsPer10k2014
+ggplot(econ_df, aes(
+  x = econ_type,
+  y = rate14
 )) +
-  geom_boxplot(fill = "red") +
+  geom_violin(fill = "red", alpha = 0.6, scale = "width") +
+  geom_boxplot(width = 0.12, outlier.shape = NA) +
   coord_flip() +
   labs(
     title = "2014 admission rates by economic type",
@@ -485,13 +529,15 @@ ggplot(economic_data, aes(
 
 ```
 
+Similarly to the plot will all nine rural-urban categories, the distributions of admission rates across economic types are similar, with most counties between roughly 10 and 35 admissions per 10,000 residents and a long right tail. The medians range from about 17 (nonspecialized) to about 25 (federal/state government-dependent). The spread is also larger in the federal/state government-dependent counties (IQR of about 22) than in the nonspecialized counties (IQR of 14). The most extreme counties are not concentrated in one economic type, though the single highest rate, about 225, is in a federal/state government-dependent county. Overall, economic type does not by itself predict a high rate.
+
 ```{r, fig.width = 9, fig.height = 4}
 
-economic_data |>
-  group_by(metro_status, economic_type) |>
+econ_df |>
+  group_by(metro, econ_type) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014),
+    median = median(rate14),
     .groups = "drop"
   ) |>
   knitr::kable(
@@ -503,30 +549,33 @@ economic_data |>
     align = "llrr"
   )
 
-ggplot(economic_data, aes(
-  x = economic_type,
-  y = admitsPer10k2014
+ggplot(econ_df, aes(
+  x = econ_type,
+  y = rate14
 )) +
-  geom_boxplot(fill = "red") +
+  geom_violin(fill = "red", alpha = 0.6, scale = "width") +
+  geom_boxplot(width = 0.12, outlier.shape = NA) +
   coord_flip() +
-  facet_wrap(~ metro_status) +
+  facet_wrap(~ metro) +
   labs(
-    title = "Economic type comparisons within metro and nonmetro counties",
+    title = "Economic type comp within metro and nonmetro counties",
     x = NULL,
     y = "Admissions per 10,000 residents"
   )
 ```
 
+The Metro-Nonmetro split does not appear to be a strong predictor of admission rates within economic types. The distributions are similar across the two categories, with the exception of the federal/state government-dependent counties, which have a higher median and more spread in nonmetro counties than in metro counties. The nonspecialized counties have the lowest median and least spread in both metro and nonmetro counties. Overall, economic type does not by itself predict a high rate, though the federal/state government-dependent counties have a higher median and more spread than the other economic types (and a bigger difference is made by the metro/nonmetro status).
+
 # 7. Are different economic types equally common across rural and urban America?
 
-```{r, fig.width = 8, fig.height = 4, results = 'hide'}
-type_data <- combined |>
-  filter(!is.na(rural_urban), !is.na(economic_type))
+```{r, fig.width = 8, fig.height = 7, results = 'hide'}
+type_df <- combined |>
+  filter(!is.na(ru), !is.na(econ_type))
 
-nrow(type_data)
+nrow(type_df)
 
-ggplot(type_data, aes(x = rural_urban, fill = economic_type)) + 
-  geom_bar() +
+ggplot(type_df, aes(x = ru, fill = econ_type)) + 
+  geom_bar(position = position_dodge2(preserve = "single")) +
   coord_flip() +
   theme(
   legend.position = "bottom",
@@ -544,7 +593,7 @@ ggplot(type_data, aes(x = rural_urban, fill = economic_type)) +
 ```
 
 ```{r, fig.width = 8, fig.height = 4}
-ggplot(type_data, aes(x = rural_urban, fill = economic_type)) +
+ggplot(type_df, aes(x = ru, fill = econ_type)) +
   geom_bar(position = "fill") +
   coord_flip() +
 theme(
@@ -562,25 +611,28 @@ theme(
   )
 ```
 
+The dodged bar chart shows the actual number of counties for each economic type, so it is easy to compare the bars within one rural-urban category and to see which types are common in absolute terms (for example, nonspecialized counties dominate the metro categories, with nearly 290 in the largest). Its drawbacks are that the bars are hard to compare across categories when category sizes differ a lot, and that with nine categories and six types it is crowded and needs a tall figure. The proportion chart removes the effect of category size, so every bar has the same length and the shares of each economic type can be compared directly across the rural-urban continuum, which is better for the question of whether the types are equally common. Its drawbacks are that it hides how many counties each bar represents (the small categories look as important as the large ones), and that only the bottom segment starts at a common baseline, so the middle segments are hard to compare accurately. The dodged chart is better for counts and the proportion chart is better for comparing composition, so using both gives a fuller picture.
+
 # 8. Are population-loss counties different?
 
 ```{r, fig.width = 7, fig.height = 2.3, results = 'hide'}
-loss_rates <- rate2014 |>
-  filter(!is.na(population_loss))
+loss_df <- d14 |>
+  filter(!is.na(pop_loss))
 
-loss_rates |>
-  group_by(population_loss) |>
+loss_df |>
+  group_by(pop_loss) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014),
-    IQR = IQR(admitsPer10k2014)
+    median = median(rate14),
+    IQR = IQR(rate14)
   )
 
-ggplot(loss_rates, aes(
-  x = population_loss,
-  y = admitsPer10k2014
+ggplot(loss_df, aes(
+  x = pop_loss,
+  y = rate14
 )) +
-  geom_boxplot(fill = "red") +
+  geom_violin(fill = "red", alpha = 0.6, scale = "width") +
+  geom_boxplot(width = 0.12, outlier.shape = NA) +
   coord_flip() +
   labs(
     title = "2014 admission rates by population loss",
@@ -590,23 +642,23 @@ ggplot(loss_rates, aes(
 ```
 
 ```{r, fig.width = 7, fig.height = 3, results = 'hide'}
-loss_changes <- change_data |>
-  filter(!is.na(population_loss))
+loss_chg_df <- chg_df |>
+  filter(!is.na(pop_loss))
 
-loss_changes |>
-  group_by(population_loss) |>
+loss_chg_df |>
+  group_by(pop_loss) |>
   summarise(
     n = n(),
     median = median(change),
     IQR = IQR(change)
   )
 
-ggplot(loss_changes, aes(
-  x = population_loss,
+ggplot(loss_chg_df, aes(
+  x = pop_loss,
   y = change
 )) +
-  geom_boxplot(fill = "red") +
-  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_violin(fill = "red", alpha = 0.6, scale = "width") +
+  geom_boxplot(width = 0.12, outlier.shape = NA) +
   coord_flip() +
   labs(
     title = "2006-2014 rate changes by population loss",
@@ -615,18 +667,20 @@ ggplot(loss_changes, aes(
   )
 ```
 
+Putting the plots side by side, it's simple to see that the population-loss counties have a higher median and more spread in both 2014 rates and 2006-2014 changes than the other counties. The median rate is about 25 for population-loss counties and about 19 for other counties, and the median change is about 3.5 for population-loss counties and about 1 for other counties. The IQRs are also larger for population-loss counties (about 20 vs. 15 for rates, and about 12 vs. 9 for changes). Overall, population-loss counties tend to have higher and more variable admission rates and increases than other counties. We can also see that between 2006 and 2014, the differences between population loss and other counties doesn't seem to have changed much.
+
 # 9. Does county population size help explain the patterns?
 
 ```{r, fig.width = 4, fig.height = 3.5, out.width = '49%', fig.show = 'hold'}
-population_data <- rate2014 |>
+pop_df <- d14 |>
   filter(
-    !is.na(people_population2014),
-    people_population2014 > 0
+    !is.na(pop_est),
+    pop_est > 0
   )
 
-ggplot(population_data, aes(
-  x = people_population2014,
-  y = admitsPer10k2014,
+ggplot(pop_df, aes(
+  x = pop_est,
+  y = rate14,
 )) +
   geom_point(alpha = 0.25, size = 1) +
   labs(
@@ -634,9 +688,9 @@ ggplot(population_data, aes(
     x = "2014 population estimate",
     y = "Admissions per 10,000 residents"
   )
-ggplot(population_data, aes(
-  x = people_population2014,
-  y = admitsPer10k2014
+ggplot(pop_df, aes(
+  x = pop_est,
+  y = rate14
 )) +
   geom_point(alpha = 0.3) +
   scale_x_log10() +
@@ -647,93 +701,147 @@ ggplot(population_data, aes(
   )
 ```
 
-```{r, fig.width = 7, fig.height = 3.5}
-ggplot(population_data, aes(
-  x = people_population2014,
-  y = admitsPer10k2014,
-  color = metro_status
+```{r, fig.width = 7, fig.height = 6.5}
+ggplot(pop_df, aes(
+  x = pop_est,
+  y = rate14,
+  size = pop_est
 )) +
-  geom_point(alpha = 0.4) +
-  scale_x_log10() +
+  geom_point(alpha = 0.3) +
+  scale_size_area(max_size = 6, labels = scales::comma) +
   labs(
-    title = "Population, metro status, and admission rates",
+    title = "Admission rates and county population: original scale",
+    x = "2014 population estimate",
+    y = "Admissions per 10,000 residents",
+    size = "Population"
+  )
+
+ggplot(pop_df, aes(
+  x = pop_est,
+  y = rate14,
+  size = pop_est
+)) +
+  geom_point(alpha = 0.3) +
+  scale_x_log10() +
+  scale_size_area(max_size = 6, labels = scales::comma) +
+  labs(
+    title = "Admission rates and county population: log scale",
     x = "2014 population estimate (log10 scale)",
     y = "Admissions per 10,000 residents",
-    color = "Metro status",
+    size = "Population"
   )
 ```
+
+**Original vs. log scale.** Both plots show the same counties, with point area proportional to population. On the original scale, almost all counties are squeezed into the far left, because most counties have well under 500,000 residents while a handful of very large ones stretch the axis to 10 million. The points overlap heavily there, so the plot only shows that the very largest counties have fairly low rates, and the size encoding adds little because most points are tiny. On the log scale, the counties spread out evenly across the axis, so we can see a weak downward trend: rates are generally lower and less variable in more populous counties, and the highest rates (above about 100) occur in small counties. The cost of the log scale is that distances no longer match raw population differences, so a few very large counties appear closer to the rest than they really are. The size of the points also becomes redundant with the x-position on this plot, so its main use is on the original scale, where the large counties are visible at all.
 
 # 10. Are high prison-admission rates primarily a rural phenomenon, or is the story more complicated?
 
 ```{r, fig.width = 8, fig.height = 4.5}
-multi_data <- population_data |>
-  filter(!is.na(metro_status), !is.na(economic_type))
+# adjacency to a metro area only exists for nonmetro counties
+multi_df <- pop_df |>
+  filter(!is.na(metro), !is.na(econ_type), !is.na(ru)) |>
+  mutate(
+    setting = case_when(
+      metro == "Metro" ~ "Metro",
+      grepl("not adjacent", ru) ~ "Nonmetro, not adjacent",
+      TRUE ~ "Nonmetro, adjacent"
+    ),
+    setting = factor(
+      setting,
+      levels = c("Metro", "Nonmetro, adjacent", "Nonmetro, not adjacent")
+    )
+  )
 
-ggplot(multi_data, aes(
-  x = economic_type,
-  y = admitsPer10k2014,
-  fill = metro_status
+ggplot(multi_df, aes(
+  x = econ_type,
+  y = rate14,
+  fill = setting
 )) +
   geom_boxplot() +
   coord_flip() +
   labs(
-    title = "Admission rates by economic type and metro status",
+    title = "Admission rates by economic type and metro setting",
     x = NULL,
     y = "Admissions per 10,000 residents",
-    fill = "Metro status"
+    fill = "Metro setting"
   )
 ```
 
-```{r, fig.width = 9, fig.height = 6}
-ggplot(multi_data, aes(
-  x = people_population2014,
-  y = admitsPer10k2014,
-  color = metro_status
-)) +
-  geom_point(alpha = 0.4, size = 1) +
-  scale_x_log10() +
-  facet_wrap(~ economic_type, ncol = 2) +
+This boxplot makes it very clear, that there's always a distinction between metro and nonmetro counties, with the nonmetro counties having higher median rates. The nonmetro counties that are not adjacent to a metro area have the highest median rates, and the metro counties have the lowest median rates. The nonmetro counties that are adjacent to a metro area have median rates that are in between the other two categories. This plot doesn't make it very easy to distinguish between the different economic types, but it is pretty clear that nonspecialized metro areas have the lowest rates of imprisonment, and mining-dependant seems to have high rates, regardless of urbanity. Overall, the story is more complicated than just rural vs. urban, but there is a clear distinction between the two.
+
+```{r, fig.width = 8, fig.height = 4.5}
+multi_df |>
+  mutate(
+    pop_group = cut(
+      pop_est,
+      breaks = c(0, 1e4, 5e4, 2.5e5, Inf),
+      labels = c("Under 10k", "10k-50k", "50k-250k", "250k+"),
+      right = FALSE
+    )
+  ) |>
+  ggplot(aes(
+    x = pop_group,
+    y = rate14,
+    fill = setting
+  )) +
+  geom_violin(
+    alpha = 0.7, scale = "width",
+    position = position_dodge(width = 0.9)
+  ) +
+  geom_boxplot(
+    width = 0.1, outlier.shape = NA,
+    position = position_dodge(width = 0.9),
+    show.legend = FALSE
+  ) +
   labs(
-    title = "Population and admission rates within economic types",
-    x = "2014 population estimate (log10 scale)",
+    title = "Admission rates by population, metro status, and adjacency",
+    x = "2014 county population",
     y = "Admissions per 10,000 residents",
-    color = "Metro status"
+    fill = "Metro setting"
   )
 ```
+
+This plot let's us see in more detail, the prison admission rates and how they vary for population sizes. They do all have a tail to them, but interestingly, both ends of the spectrum (extremely high or low population) seem to have less skew to them. We also see a much more concentrated low admissions rate for high population urban areas, unsurprisingly. We also see small population nonmetro areas have extremely high skew, indicationg more extreme outliers.
 
 # 11. Which counties deserve individual attention?
 
 ```{r}
-cutoff <- quantile(rate2014$admitsPer10k2014, 0.75) +
-  1.5 * IQR(rate2014$admitsPer10k2014)
+# z-scores of the 2006-2014 change in admission rate
+chg_z <- chg_df |>
+  mutate(z = (change - mean(change)) / sd(change))
 
-unusual <- rate2014 |>
-  filter(admitsPer10k2014 > cutoff)
+# unusual = increase more than 3 standard deviations above the mean change
+cutoff <- mean(chg_df$change) + 3 * sd(chg_df$change)
+
+unusual <- chg_z |>
+  filter(z > 3)
 
 selected <- unusual |>
-  slice_max(admitsPer10k2014, n = 5)
+  slice_max(z, n = 5)
 
 selected |>
   transmute(
     County = paste(county, state, sep = ", "),
-    Rate = admitsPer10k2014,
-    Admissions = admissions2014,
-    Population = population2014
+    Rate06 = rate06,
+    Rate14 = rate14,
+    Change = change,
+    Z = z,
+    Population = pop_est
   ) |>
   knitr::kable(
     format = "latex",
     booktabs = TRUE,
     digits = 2,
     row.names = FALSE,
-    col.names = c("County", "Rate", "Admissions", "Population"),
-    align = "lrrr"
+    col.names = c("County", "2006 rate", "2014 rate", "Change", "z-score", "Population"),
+    align = "lrrrrr"
   )
 ```
 
 ```{r, fig.width = 8, fig.height = 5}
-ggplot(population_data, aes(
-  x = people_population2014,
-  y = admitsPer10k2014
+ggplot(chg_z, aes(
+  x = pop_est,
+  y = change
 )) +
   geom_point(alpha = 0.2) +
   geom_point(
@@ -754,22 +862,25 @@ ggplot(population_data, aes(
     expand = expansion(mult = c(0.05, 0.2))
   ) +
   labs(
-    title = "Counties with exceptionally high admission rates",
+    title = "Counties with exceptionally large increases in admission rates",
+    subtitle = "Dashed line: z-score of 3",
     x = "2014 population estimate (log10 scale)",
-    y = "Admissions per 10,000 residents"
+    y = "Change in admissions per 10,000 residents (2006-2014)"
   )
 ```
+
+I evaluated the counties with the largest increases in prison admission rates between 2006 and 2014, and found that the five counties with the largest z-scores were Dearborn County, Indiana; McDowell County, West Virginia; Clay County, Kentucky; Martin County, Kentucky; and Harlan County, Kentucky. All of these counties had increases of over 50 admissions per 10,000 residents, which is more than three standard deviations above the mean change. The populations of these counties are all relatively small, ranging from about 12,000 to 50,000 residents. Kenedy is particularly notable, as it had the largest increase in admissions per 10,000 residents, with a change of 90.5, do note that this is a very small population so these changes may be more extreme more easily. Overall, these counties deserve individual attention due to their exceptionally large increases in prison admission rates.
 
 # 12. Is Dearborn County unusual even when compared with counties like itself?
 
 ```{r}
-dearborn <- rate2014 |>
+dearborn <- d14 |>
   filter(FIPS == "18029")
 
-others <- rate2014 |>
+others <- d14 |>
   filter(FIPS != dearborn$FIPS)
 
-comparisons <- bind_rows(
+comp <- bind_rows(
   "All U.S. counties" = others,
   
   "Indiana" = others |>
@@ -777,31 +888,31 @@ comparisons <- bind_rows(
   
   "Similar population" = others |>
     filter(
-      people_population2014 >= 0.75 * dearborn$people_population2014,
-      people_population2014 <= 1.25 * dearborn$people_population2014,
+      pop_est >= 0.75 * dearborn$pop_est,
+      pop_est <= 1.25 * dearborn$pop_est,
     ),
   
   "Same rural-urban category" = others |>
-    filter(rural_urban == dearborn$rural_urban),
+    filter(ru == dearborn$ru),
   
   "Same economic type" = others |>
-    filter(economic_type == dearborn$economic_type),
+    filter(econ_type == dearborn$econ_type),
   
   "Same rural-urban and economic type" = others |>
     filter(
-      rural_urban == dearborn$rural_urban,
-      economic_type == dearborn$economic_type
+      ru == dearborn$ru,
+      econ_type == dearborn$econ_type
     ),
   
   .id = "reference_group"
 )
 
-comparisons |>
+comp |>
   group_by(reference_group) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014),
-    maximum = max(admitsPer10k2014)
+    median = median(rate14),
+    maximum = max(rate14)
   ) |>
   knitr::kable(
     format = "latex",
@@ -814,13 +925,13 @@ comparisons |>
 ```
 
 ```{r, fig.width = 9, fig.height = 4.5}
-ggplot(comparisons, aes(
+ggplot(comp, aes(
   x = reference_group,
-  y = admitsPer10k2014
+  y = rate14
 )) +
   geom_boxplot(fill = "red") +
   geom_hline(
-    yintercept = dearborn$admitsPer10k2014,
+    yintercept = dearborn$rate14,
     color = "blue", linetype = "dashed"
   ) +
     scale_x_discrete(
@@ -834,30 +945,33 @@ ggplot(comparisons, aes(
     y = "Admissions per 10,000 residents"
   )
 ```
+
+We see that Dearborn County's 2014 prison-admission rate is higher than the median of all the reference groups, and even higher than the maximum of some of them. This indicates that Dearborn County is indeed unusual, even when compared with counties that are similar in terms of population, rural-urban category, and economic type. The blue dashed line representing Dearborn's rate is above the boxes for most reference groups, highlighting its exceptional status.
+
 # 13. What does the prison-admission story look like in our own county - Yolo County, California?
 
 ```{r, fig.width = 7, fig.height = 3.5, results = 'hide'}
 yolo <- combined |>
   filter(FIPS == "06113")
 
-yolo_time <- data.frame(
+yolo_ts <- data.frame(
   year = c(2006, 2013, 2014),
   admissions = c(
-    yolo$admissions2006,
-    yolo$admissions2013,
-    yolo$admissions2014
+    yolo$adm06,
+    yolo$adm13,
+    yolo$adm14
   ),
   rate = c(
-    yolo$admitsPer10k2006,
-    yolo$admitsPer10k2013,
-    yolo$admitsPer10k2014
+    yolo$rate06,
+    yolo$rate13,
+    yolo$rate14
   )
 )
 
-yolo_time
+yolo_ts
 
 
-ggplot(yolo_time, aes(x = year, y = rate)) +
+ggplot(yolo_ts, aes(x = year, y = rate)) +
   geom_line() +
   geom_point(color = "blue", size = 3) +
   scale_x_continuous(breaks = c(2006, 2013, 2014)) +
@@ -869,43 +983,43 @@ ggplot(yolo_time, aes(x = year, y = rate)) +
 ```
 
 ```{r}
-yolo_others <- rate2014 |>
+yolo_oth <- d14 |>
   filter(FIPS != yolo$FIPS)
 
-yolo_groups <- bind_rows(
-  "All U.S. counties" = yolo_others,
+yolo_grp <- bind_rows(
+  "All U.S. counties" = yolo_oth,
   
-  "California" = yolo_others |>
+  "California" = yolo_oth |>
     filter(state == "CA"),
   
-  "Similar population" = yolo_others |>
+  "Similar population" = yolo_oth |>
     filter(
-      people_population2014 >= 0.75 * yolo$people_population2014,
-      people_population2014 <= 1.25 * yolo$people_population2014
+      pop_est >= 0.75 * yolo$pop_est,
+      pop_est <= 1.25 * yolo$pop_est
     ),
   
-  "Same rural-urban category" = yolo_others |>
-    filter(rural_urban == yolo$rural_urban),
+  "Same rural-urban category" = yolo_oth |>
+    filter(ru == yolo$ru),
   
-  "Same economic type" = yolo_others |>
-    filter(economic_type == yolo$economic_type),
+  "Same economic type" = yolo_oth |>
+    filter(econ_type == yolo$econ_type),
   
-  "California population and rural-urban peers" = yolo_others |>
+  "California population and rural-urban peers" = yolo_oth |>
     filter(
       state == "CA",
-      rural_urban == yolo$rural_urban,
-      people_population2014 >= 0.5 * yolo$people_population2014,
-      people_population2014 <= 2 * yolo$people_population2014
+      ru == yolo$ru,
+      pop_est >= 0.5 * yolo$pop_est,
+      pop_est <= 2 * yolo$pop_est
     ),
   
   .id = "reference_group"
 )
 
-yolo_groups |>
+yolo_grp |>
   group_by(reference_group) |>
   summarise(
     n = n(),
-    median = median(admitsPer10k2014)
+    median = median(rate14)
   ) |>
   knitr::kable(
     format = "latex",
@@ -918,13 +1032,13 @@ yolo_groups |>
 ```
 
 ```{r, fig.width = 10, fig.height = 4.5}
-ggplot(yolo_groups, aes(
+ggplot(yolo_grp, aes(
   x = reference_group,
-  y = admitsPer10k2014
+  y = rate14
 )) +
   geom_boxplot(fill = "red") +
   geom_hline(
-    yintercept = yolo$admitsPer10k2014,
+    yintercept = yolo$rate14,
     color = "blue", linetype = "dashed"
   ) +
     scale_x_discrete(
@@ -940,16 +1054,16 @@ ggplot(yolo_groups, aes(
 ```
 
 ```{r, fig.width = 7, fig.height = 2.5}
-metro_summary <- metro_data |>
-  group_by(metro_status) |>
+metro_sum <- metro_df |>
+  group_by(metro) |>
   summarise(
-    median = median(admitsPer10k2014),
+    median = median(rate14),
     .groups = "drop"
   )
 
-ggplot(metro_summary, aes(
+ggplot(metro_sum, aes(
   x = median,
-  y = metro_status
+  y = metro
 )) +
   geom_point(size = 3, color = "steelblue") +
   geom_text(
@@ -962,7 +1076,7 @@ ggplot(metro_summary, aes(
     x = "Median admissions per 10,000 residents",
     y = NULL
   )
-  ```
+```
 
-  # 15. When does adding aesthetics make a graph worse?
+# 15. When does adding aesthetics make a graph worse?
 
