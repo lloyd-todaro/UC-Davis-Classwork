@@ -1,0 +1,41 @@
+product_id,generic_product,category,comparison_base_unit,product_match_note
+P01,White rice,Pantry,oz,Comparable generic specification; brand/quality not observed
+P02,Brown rice,Pantry,oz,Comparable generic specification; brand/quality not observed
+P03,Dry pasta,Pantry,oz,Comparable generic specification; brand/quality not observed
+P04,Canned black beans,Pantry,oz,Comparable generic specification; brand/quality not observed
+P05,Canned tomatoes,Pantry,oz,Comparable generic specification; brand/quality not observed
+P06,Rolled oats,Pantry,oz,Comparable generic specification; brand/quality not observed
+P07,Peanut butter,Pantry,oz,Comparable generic specification; brand/quality not observed
+P08,All purpose flour,Pantry,oz,Comparable generic specification; brand/quality not observed
+P09,Granulated sugar,Pantry,oz,Comparable generic specification; brand/quality not observed
+P10,Corn tortillas,Pantry,oz,Comparable generic specification; brand/quality not observed
+P11,Whole milk,Dairy,fl_oz,Comparable generic specification; brand/quality not observed
+P12,Plain yogurt,Dairy,oz,Comparable generic specification; brand/quality not observed
+P13,Cheddar cheese,Dairy,oz,Comparable generic specification; brand/quality not observed
+P14,Butter,Dairy,oz,Comparable generic specification; brand/quality not observed
+P15,Large eggs,Dairy,count,Comparable generic specification; brand/quality not observed
+P16,Soy milk,Dairy,fl_oz,Comparable generic specification; brand/quality not observed
+P17,Cottage cheese,Dairy,oz,Comparable generic specification; brand/quality not observed
+P18,Mozzarella,Dairy,oz,Comparable generic specification; brand/quality not observed
+P19,Bananas,Produce,oz,Comparable generic specification; brand/quality not observed
+P20,Gala apples,Produce,oz,Comparable generic specification; brand/quality not observed
+P21,Carrots,Produce,oz,Comparable generic specification; brand/quality not observed
+P22,Romaine lettuce,Produce,oz,Comparable generic specification; brand/quality not observed
+P23,Yellow onions,Produce,oz,Comparable generic specification; brand/quality not observed
+P24,Russet potatoes,Produce,oz,Comparable generic specification; brand/quality not observed
+P25,Tomatoes,Produce,oz,Comparable generic specification; brand/quality not observed
+P26,Oranges,Produce,oz,Comparable generic specification; brand/quality not observed
+P27,Broccoli,Produce,oz,Comparable generic specification; brand/quality not observed
+P28,Baby spinach,Produce,oz,Comparable generic specification; brand/quality not observed
+P29,Chicken breast,Protein,oz,Comparable generic specification; brand/quality not observed
+P30,Ground turkey,Protein,oz,Comparable generic specification; brand/quality not observed
+P31,Tofu,Protein,oz,Comparable generic specification; brand/quality not observed
+P32,Canned tuna,Protein,oz,Comparable generic specification; brand/quality not observed
+P33,Dry lentils,Protein,oz,Comparable generic specification; brand/quality not observed
+P34,Frozen salmon,Protein,oz,Comparable generic specification; brand/quality not observed
+P35,Ground beef,Protein,oz,Comparable generic specification; brand/quality not observed
+P36,Frozen peas,Protein,oz,Comparable generic specification; brand/quality not observed
+P37,Canned chickpeas,Protein,oz,Comparable generic specification; brand/quality not observed
+P38,Whole wheat bread,Bakery,oz,Comparable generic specification; brand/quality not observed
+P39,Bagels,Bakery,oz,Comparable generic specification; brand/quality not observed
+P40,Sandwich rolls,Bakery,oz,Comparable generic specification; brand/quality not observed

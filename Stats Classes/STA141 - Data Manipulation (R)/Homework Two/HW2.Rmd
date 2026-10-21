@@ -1,0 +1,2016 @@
+---
+title: "HW2: The Economics and Geography of Grocery Shopping"
+author: "Joseph Matatyaou and Lloyd Todaro"
+date: "Due 10-23-2026"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 1
+fontsize: 11pt
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(kableExtra)
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = TRUE,
+  fig.width = 6.5,
+  fig.height = 4.5,
+  out.width = "\\linewidth",
+  fig.align = "center"
+)
+
+theme_set(
+  theme_minimal(base_size = 10) +
+    theme(
+      plot.title = element_text(size = 11, face = "bold"),
+      plot.subtitle = element_text(size = 9),
+      plot.caption = element_text(size = 8, hjust = 0),
+      plot.title.position = "plot",
+      plot.caption.position = "plot"
+      )
+  )
+
+# Reproducible placement when using jitter or random sampling later
+set.seed(141)
+
+# CSV files are in same folder as this Rmd
+data_dir <- "."
+
+report_table <- function(data, caption = NULL,
+                         digits = 2, col.names = colnames(data)) {
+  knitr::kable(
+    data,
+    format = "latex",
+    booktabs = TRUE,
+    longtable = TRUE,
+    row.names = FALSE,
+    linesep = "",
+    digits = digits,
+    col.names = col.names,
+    caption = caption
+  ) |>
+    kableExtra::kable_styling(
+      latex_options = "repeat_header",
+      position = "center",
+      font_size = 10
+    ) |>
+    kableExtra::row_spec(0, bold = TRUE)
+}
+```
+
+# 0. Introduction
+
+This report looks into how grocery prices, grocery basket composition, store availability, household resources, and transportation affect the cost and accessibility of grocery shopping in a simulated scenario. This uses nine substantive CSV datasets and an accompanying data dictionary.
+
+All substantive numerical observations are simulated. Store banners and ownership groups are fictional, and the constructed tract identifiers do not represent official Census tracts. Real California county names and FIPS codes serve as geographic labels only.
+
+The price observations represent April 15, 2024 and April 15, 2025. County context and tract measures represent a simulated 2024 profile, where the alternative food environment indicators represent 2022. The study store roster is undated, and travel values describe hypothetical shopping alternatives. These different reference periods and definitions will be distinguished in the analysis.
+
+Original CSV files will be retained and unchanged. Comparisons will use compatible measurement units, appropriate observational units, and explicit eligibility rules and denominators. Missing prices will not be treated as zero, and basket costs will be compared only when every required product has an observed price at the same store and date.
+
+```{r import-data, include=FALSE}
+# Preserve ids as character variables at import including leading 0's
+# Other numeric fileds are parsed
+
+stores_raw <- read_csv(
+  file.path(data_dir, "01_stores.csv"),
+  col_types = cols(
+    store_id = col_character(),
+    banner_id = col_character(),
+    ownership_unit_id_sim = col_character(),
+    county_fips_raw = col_character(),
+    opened_year_sim = col_integer()
+  )
+)
+
+banners_raw <- read_csv(
+  file.path(data_dir, "02_banner_ownership.csv"),
+  col_types = cols(
+    banner_id = col_character()
+  )
+)
+
+products_raw <- read_csv(
+  file.path(data_dir, "03_products.csv"),
+  col_types = cols(
+    product_id = col_character()
+  )
+)
+
+prices_raw <- read_csv(
+  file.path(data_dir, "04_price_observations.csv"),
+  col_types = cols(
+    observation_id = col_character(),
+    store_id = col_character(),
+    product_id = col_character(),
+    observation_date = col_date(format = "%Y-%m-%d"),
+    package_quantity = col_double(),
+    shelf_price_usd = col_double()
+  )
+)
+
+basket_items_raw <- read_csv(
+  file.path(data_dir, "05_basket_items.csv"),
+  col_types = cols(
+    basket_id = col_character(),
+    product_id = col_character(),
+    quantity_in_base_units = col_double()
+  )
+)
+
+county_context_raw <- read_csv(
+  file.path(data_dir, "06_county_context.csv"),
+  col_types = cols(
+    county_fips = col_character(),
+    population_2024_sim = col_integer(),
+    households_2024_sim = col_integer(),
+    median_household_income_2024_usd_sim = col_double(),
+    poverty_rate_2024_pct_sim = col_double(),
+    households_no_vehicle_2024_sim = col_integer()
+  )
+)
+
+food_environment_raw <- read_csv(
+  file.path(data_dir, "07_county_food_environment.csv"),
+  col_types = cols(
+    county_fips_raw = col_character(),
+    population_2022_est_sim = col_integer(),
+    food_outlets_2022_est_sim = col_integer(),
+    food_outlets_per_10000_2022_sim = col_double(),
+    low_access_residents_share_2022_pct_sim = col_double(),
+    indicator_reference_year = col_integer()
+  )
+)
+
+tracts_raw <- read_csv(
+  file.path(data_dir, "08_tract_food_access.csv"),
+  col_types = cols(
+    tract_id = col_character(),
+    tract_population_2024_sim = col_integer(),
+    households_2024_sim = col_integer(),
+    low_access_residents_2024_sim = col_integer(),
+    low_income_low_access_residents_2024_sim = col_integer(),
+    households_no_vehicle_2024_sim = col_integer(),
+    tract_poverty_rate_pct_2024_sim = col_double()
+  )
+)
+
+travel_raw <- read_csv(
+  file.path(data_dir, "09_tract_store_travel.csv"),
+  col_types = cols(
+    tract_id = col_character(),
+    store_id = col_character(),
+    driving_distance_oneway_miles_sim = col_double(),
+    bus_roundtrip_minutes_sim = col_double(),
+    bus_roundtrip_fare_usd_sim = col_double(),
+    car_roundtrip_cost_usd_sim = col_double()
+  )
+)
+
+data_dictionary <- read_csv(
+  file.path(data_dir, "10_data_dictionary.csv"),
+  col_types = cols(.default = col_character())
+)
+
+# Keep original imported tables together for Q1
+
+raw_data <- list(
+  stores = stores_raw,
+  banners = banners_raw,
+  products = products_raw,
+  prices = prices_raw,
+  basket_items = basket_items_raw,
+  county_context = county_context_raw,
+  food_environment = food_environment_raw,
+  tracts = tracts_raw,
+  travel = travel_raw
+)
+
+# stop knitting if an import makes a parsing problem
+walk(raw_data, stop_for_problems)
+stop_for_problems(data_dictionary)
+```
+
+```{r working-data, include = FALSE}
+stores <- stores_raw |>
+  mutate(
+    county_fips = str_pad(county_fips_raw, width = 5, pad = "0")
+  )
+
+food_environment <- food_environment_raw |>
+  mutate(
+    county_fips = str_pad(county_fips_raw, width = 5, pad = "0")
+  )
+
+tracts <- tracts_raw |>
+  mutate(
+    county_fips = substr(tract_id, 1, 5)
+  )
+
+banners <- banners_raw
+products <- products_raw
+prices <- prices_raw
+basket_items <- basket_items_raw
+county_context <- county_context_raw
+travel <- travel_raw
+
+# Check
+stopifnot(
+  all(str_detect(county_context$county_fips, "^[0-9]{5}$")),
+  all(str_detect(stores$county_fips, "^[0-9]{5}$")),
+  all(str_detect(food_environment$county_fips, "^[0-9]{5}$")),
+  all(str_detect(tracts$tract_id, "^[0-9]{11}$")),
+  all(str_detect(travel$tract_id, "^[0-9]{11}$")),
+  all(stores$county_fips %in% county_context$county_fips),
+  all(food_environment$county_fips %in% county_context$county_fips),
+  all(tracts$county_fips %in% county_context$county_fips)
+)
+```
+
+# 1. What do we actually know, and what is the unit of each dataset?
+
+## Dataset Summary
+
+The nine substantive files describe different observational units. The data dictionary provides metadata and is not a substantive dataset. All numerical observations below are simulated data.
+
+```{r q1-inventory}
+# Count rows and columns in original tables
+inventory <- tibble(
+  Dataset = c(
+    "01 Stores",
+    "02 Banners",
+    "03 Products",
+    "04 Prices",
+    "05 Basket items",
+    "06 County context",
+    "07 Food environment",
+    "08 Tract access",
+    "09 Travel"
+  ),
+  Rows = map_int(raw_data, nrow),
+  Columns = map_int(raw_data, ncol)
+)
+
+report_table(
+  inventory,
+  caption = "Dimensions of the nine original substantive datasets."
+)
+```
+
+Now the units, geographic levels, and references period for each are:
+
+- Stores: One physical store per row, identified by `store_id`. Each store has a county location. The roster is undated and the opening year is a store characteristic, not the roster's observation date.
+- Banners: One banner per row, identified by `banner_id`. This is a business level table with no geographic unit or reference date. A banner may be used by multiple stores.
+- Products: One generic comparison product per row, identified by `product_id`. This table is not geographic and has no reference date.
+- Prices: One store-product-date observation per row. The substantive key is `store_id`, `product_id`, and `observation_date`. `observation_id` is also a candidate row key. Geography is obtained through the store. The two dates are April 15, 2024 and April 15, 2025.
+- Basket items: One required product within a basket per row, identified jointly by `basket_id` and `product_id`. These are fixed scenario definitions with no geographic level or date.
+- County context: One county per row, identified by `county_fips`. The demographic and socioeconomic measures represent a simulated 2024 profile.
+- Food environment: One county per row, identified by `county_fips_raw`, which is padded to make `county_fips` in the working table. Its indicators and population denominator refer to 2022.
+- Tract access: One constructed tract per row, identified by `tract_id`. The first five characters identify its county. Its population and access measures refer to 2024.
+- Travel: One recorded tract-store alternative per row, identified jointly by `tract_id` and `store_id`. Its geographic unit is a link between a tract and a store, potentially across county boundaries. Travel values are hypothetical scenario inputs without an explicit observation date.
+
+## Key cardinality check
+
+A key must identify one row at the intended observational level. For a composite key, uniqueness applies to the combination of fields, not necessarily to each field separately.
+
+```{r q1-key-audit}
+# List proposed key for each table in raw_data
+key_columns <- list(
+  stores = "store_id",
+  banners = "banner_id",
+  products = "product_id",
+  prices = c("store_id", "product_id", "observation_date"),
+  basket_items = c("basket_id", "product_id"),
+  county_context = "county_fips",
+  food_environment = "county_fips_raw",
+  tracts = "tract_id",
+  travel = c("tract_id", "store_id")
+)
+
+# to apply same audit to every table
+audit_key <- function(data, key) {
+  key_values <- select(data, all_of(key))
+
+  tibble(
+    Rows = nrow(data),
+    Distinct = nrow(distinct(key_values)),
+    Repeated = sum(duplicated(key_values)),
+    Missing = sum(!complete.cases(key_values))
+  )
+}
+
+key_audit <- map2_dfr(raw_data, key_columns, audit_key) |>
+  mutate(Dataset = inventory$Dataset, .before = 1)
+
+report_table(
+  key_audit,
+  caption = "Audit of the proposed keys listed above."
+)
+```
+
+Here, Distinct counts different key combinations, Repeated counts rows beyond the first occurrence of a key, and Missing counts rows missing at least one key component. Each proposed key has as many distinct values or combinations as rows, with no repeated or missing keys.
+
+This supports the proposed observational units. This does not prove that every possible join is appropriate.
+
+## Missing values and incomplete coverage
+
+```{r q1-missingness}
+# count missing values separately for every column of every dataset
+missingness <- imap_dfr(raw_data, function(data, dataset_name) {
+  tibble(
+    Dataset = dataset_name,
+    Field = names(data),
+    Rows = nrow(data),
+    Missing = map_int(data, function(x) sum(is.na(x))),
+    Percent = 100 * Missing / Rows
+  )
+})
+
+# display important fileds
+
+important_fields <- tribble(
+  ~Dataset, ~Field, ~Measure,
+  "prices", "shelf_price_usd", "Shelf price",
+  "prices", "package_quantity", "Package quantity",
+  "county_context", "population_2024_sim", "County population",
+  "food_environment", "low_access_residents_share_2022_pct_sim", "2022 low-access share",
+  "tracts", "low_access_residents_2024_sim", "Tract low-access count",
+  "travel", "bus_roundtrip_minutes_sim", "Bus round-trip time",
+  "travel", "bus_roundtrip_fare_usd_sim", "Bus round-trip fare"
+)
+
+missingness_display <- important_fields |>
+  left_join(missingness, by = c("Dataset", "Field")) |>
+  select(Measure, Rows, Missing, Percent)
+
+report_table(
+  missingness_display,
+  digits = 1,
+  caption = "Missingness in selected fields (percentages use rows in each file)."
+)
+```
+
+The only fields with missing entries are bus round-trip time and fare. Each is missing for 178 of the 670 travel alternatives, or 26.6%. All other fields here in the nine substantive files have no missing entries.
+
+```{r q1-bus-check, include = FALSE}
+bus_check <- travel |>
+  group_by(bus_service_available_sim) |>
+  summarise(
+    Alternatives = n(),
+    Missing_time = sum(is.na(bus_roundtrip_minutes_sim)),
+    Missing_fare = sum(is.na(bus_roundtrip_fare_usd_sim)),
+    Zero_fare = sum(bus_roundtrip_fare_usd_sim == 0, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+report_table(
+  bus_check,
+  col.names = c(
+    "Bus service", "Alternatives", "Missing time",
+    "Missing fare", "Zero fare"
+  ),
+  caption = "Bus missingness and recorded zero fares by service availability."
+)
+```
+
+The missing bus values occur on the 178 alternatives without bus service. Among the 492 alternatives with service, 91 have zero fare. These zero fares represent available free fare trips.
+
+No missing entries in the price table does not mean complete price coverage. An unrecorded store product date combination has no row at all. Its price is unknown and has neither a zero price nor proof that the product was unavailable.
+
+## How the tables connect
+
+This table describes the intended relationships. Many to one means that multiple rows in the starting table may refer to one row in the lookup table.
+
+```{r q1-relationships}
+relationships <- tribble(
+  ~From, ~To, ~Key, ~Relationship,
+  "Prices", "Stores", "store_id", "Many-to-one",
+  "Prices", "Products", "product_id", "Many-to-one",
+  "Stores", "Banners", "banner_id", "Many-to-one",
+  "Stores", "County context", "county_fips", "Many-to-one",
+  "Basket items", "Products", "product_id", "Many-to-one",
+  "Food environment", "County context", "county_fips", "One-to-one",
+  "Tracts", "County context", "county_fips", "Many-to-one",
+  "Travel", "Tracts", "tract_id", "Many-to-one",
+  "Travel", "Stores", "store_id", "Many-to-one"
+)
+
+report_table(
+  relationships,
+  caption = "Intended relationships between datasets."
+)
+```
+
+For a concrete depiction within this scenario, price observation `PR0000001` records product `P01` at store `S0001` on April 15, 2024. Matching `store_id` connects the observation to the store Valley Basket - Yolo 1. That store record supplies banner VAL, simulated owner unit OWN-VALLEY, and raw county code 6113.
+
+Matching banner VAL to the banner table supplies the banner name Valley Basket and parent-group label Valley Retail Holdings. Padding 6113 to 06113 connects the store to Yolo's simulated 2024 county context. The owner unit ID comes from the store table where a parent group label is not always an individual owner. Here, "Independent operators" groups unrelated owners.
+
+The route from a tract to a candidate store is different. For example, constructed tract `06113000001` is linked to store `S0001` in the travel table. Matching the tract ID supplied tract characteristics, while matching the store ID supplies store characteristics. The recorded pair supplied the travel assumptions. Sharing a county code alone does not create a candidate shopping trip.
+
+## Why the files cannot be merged automatically
+
+```{r q1-invalid-join-size, include = FALSE}
+# count the combos a county only store tract join would create
+# without constructing the expanded table
+stores_by_county <- stores |>
+  count(county_fips, name = "n_stores")
+
+tracts_by_county <- tracts |>
+  count(county_fips, name = "n_tracts")
+
+county_combinations <- stores_by_county |>
+  inner_join(tracts_by_county, by = "county_fips") |>
+  mutate(combinations = n_stores * n_tracts)
+
+join_comparison <- tibble(
+  Method = c(
+    "All within-county store-tract combinations",
+    "Recorded tract-store travel alternatives"
+  ),
+  Rows = c(
+    sum(county_combinations$combinations),
+    nrow(travel)
+  )
+)
+
+report_table(
+  join_comparison,
+  caption = "Different row counts reflect different definitions of a link."
+)
+```
+
+CSV is a file format, not a shared observational unit. Joining stores to tracts only by county would create every within county store tract combination, rather than identify recorded shopping alternatives.
+
+This would produce 830 combinations, compared with 670 recorded travel alternatives. Therefore introducing unrecorded within county pairs and omit cross county alternatives. Travel analysis should use the recorded tract store links and county analysis should aggregate stores and tracts before joining their summaries.
+
+# 2. What does a grocery price mean when package sizes differ?
+
+A shelf price measures the cost of an entire package. Let $P_{sjt}$ denote the advertised package price for product $j$ at store $s$ on date $t$, and let $Q^*_{sjt}$ denote its package quantity converted to the product's comparison base unit. The standardized unit price is
+
+$$
+U_{sjt} = \frac{P_{sjt}}{Q^*_{sjt}}
+$$
+
+Depending on the product, $U_{sjt}$ is measured in dollars per ounce, fluid ounce, or item. Comparison will use the same product and compatible units
+
+## Standardizing quantities and prices
+
+```{r q2-standardize}
+# each package unit maps to compatible base unit and conversion factor
+conversions <- tribble(
+  ~package_unit, ~converted_unit, ~factor,
+  "oz", "oz", 1,
+  "lb", "oz", 16,
+  "g", "oz", 0.03527396195,
+  "kg", "oz", 35.27396195,
+  "fl_oz", "fl_oz", 1,
+  "liter", "fl_oz", 33.8140227,
+  "count", "count", 1,
+  "dozen", "count", 12
+)
+
+prices_units <- prices |>
+  left_join(
+    products,
+    by = "product_id",
+    relationship = "many-to-one"
+  ) |>
+  left_join(
+    conversions,
+    by = "package_unit",
+    relationship = "many-to-one"
+  ) |>
+  mutate(
+    quantity_base = package_quantity * factor,
+    valid = !is.na(comparison_base_unit) &
+      !is.na(converted_unit) &
+      !is.na(quantity_base) &
+      !is.na(shelf_price_usd) &
+      converted_unit == comparison_base_unit &
+      quantity_base > 0 &
+      shelf_price_usd > 0,
+    unit_price = if_else(
+      valid, shelf_price_usd / quantity_base, NA_real_
+    )
+  )
+
+# confirm joins preserve rows and conversions valid
+stopifnot(
+  nrow(prices_units) == nrow(prices),
+  all(prices_units$valid)
+)
+```
+
+All 8,980 recorded prices have positive quantities and prices and compatible package and comparison units. The joins preserve the original number of observations. Now, a 2 pound package is 32 ounces, while a 1 liter package is 33.8140227 fl oz. Mass, volume, and count prices are separate.
+
+## Shelf price summaries by date
+
+These summaries have all recorded prices on each date, with promotions. The unit of analysis is a store product date observation.
+
+```{r q2-date-summary}
+date_summary <- prices_units |>
+  group_by(observation_date) |>
+  summarise(
+    Observations = n(),
+    Products = n_distinct(product_id),
+    Stores = n_distinct(store_id),
+    Mean = mean(shelf_price_usd),
+    Median = median(shelf_price_usd),
+    SD = sd(shelf_price_usd),
+    Q1 = quantile(shelf_price_usd, 0.25),
+    Q3 = quantile(shelf_price_usd, 0.75),
+    IQR = IQR(shelf_price_usd),
+    P90 = quantile(shelf_price_usd, 0.90),
+    Promotion_pct = 100 * mean(promotion_flag == "Yes"),
+    .groups = "drop"
+  )
+
+# split summaries into two tables to fit in the pdf
+report_table(
+  date_summary |>
+    select(observation_date, Observations, Products, Stores, Promotion_pct),
+  digits = 2,
+  col.names = c("Date", "Observations", "Products", "Stores", "Promotion (%)"),
+  caption = "Coverage and promotional prevalence by date."
+)
+
+report_table(
+  date_summary |>
+    select(observation_date, Mean, Median, SD, Q1, Q3, IQR, P90),
+  digits = 2,
+  col.names = c("Date", "Mean", "Median", "SD", "Q1", "Q3", "IQR", "P90"),
+  caption = "Shelf price summaries, in dollars per package."
+)
+```
+
+There are 4,392 observations in 2024 and 4,588 in 2025, covering 40 products and 145 stores on each date. Mean package prices are \$5.39 and \$5.63 respectively. In both years, the mean exceeds the medians indicating a right skewed price distribution. The difference between these means is not an estimate of price inflation since the observed product coverage and package sizes can differ between dates.
+
+## Package size and standardized prices for two products
+
+Here white rice is selected (P01, oz) and whole milk (P11, fl. oz). Each comparison includes all recorded prices for that product on the specified date.
+
+```{r q2-product-summary}
+selected_prices <- prices_units |>
+  filter(product_id %in% c("P01", "P11"))
+
+product_summary <- selected_prices |>
+  group_by(generic_product, observation_date, comparison_base_unit) |>
+  summarise(
+    n = n(),
+    Mean = mean(unit_price),
+    Median = median(unit_price),
+    IQR = IQR(unit_price),
+    .groups = "drop"
+  )
+
+report_table(
+  product_summary,
+  digits = 3,
+  col.names = c(
+    "Product", "Date", "Base unit", "n",
+    "Mean", "Median", "IQR"
+  ),
+  caption = "Product specific unit prices (USD/base unit)."
+)
+```
+
+The median rice price is about \$0.132/oz in 2024 and \$0.138/oz in 2025. The median milk price is about \$0.061/fl oz and \$0.064/fl oz respectively.
+
+```{r q2-quantity-plo, fig.height = 5}
+selected_prices |>
+  mutate(
+    Product = case_when(
+      product_id == "P01" ~ "White rice (oz)",
+      product_id == "P11" ~ "Whole milk (fl oz)"
+    )
+  ) |>
+  ggplot(aes(
+    x = quantity_base,
+    y = shelf_price_usd,
+    color = promotion_flag
+  )) +
+  geom_point(alpha = 0.6, size = 1.8) + 
+  facet_wrap(
+    vars(Product, observation_date),
+    ncol = 2,
+    scales = "free"
+  ) +
+  labs(
+    title = "Larger packages generally have higher shelf prices",
+    subtitle = "All recorded white rice and whole milk prices, by date",
+    x = "Package quantity in the labeled base unit",
+    y = "Shelf price (USD/package)",
+    color = "Promotion",
+    caption = paste(
+      "Simulated teaching data.",
+      "Rice: n = 121 (2024), 126 (2025); milk: n = 128 (2024), 132 (2025)."
+    )
+  ) +
+  theme(legend.position = "bottom")
+```
+
+For both products and dates, larger packages generally have higher shelf prices. Advertised price variation thus partly reflects package quantity. Prices also differ among similarly sized packages, so quantity does not explain all variation. Standardizing by $Q^*_{sjt}$ makes quantities comparable within each product.
+
+## Promotions by product category
+
+```{r q2-promotions}
+promotion_summary <- prices_units |>
+  group_by(category, observation_date) |>
+  summarise(
+    n = n(),
+    Promotion_pct = 100 * mean(promotion_flag == "Yes"),
+    .groups = "drop"
+  ) |>
+  mutate(Year = format(observation_date, "%Y")) |>
+  select(category, Year, n, Promotion_pct) |>
+  pivot_wider(
+    names_from = Year,
+    values_from = c(n, Promotion_pct)
+  )
+
+report_table(
+  promotion_summary,
+  digits = 1,
+  col.names = c("Category", "n 2024", "n 2025", "Promo 2024 (%)", "Promo 2025 (%)"),
+  caption = "Promotion percentages use recorded prices within each category and date."
+)
+```
+
+Promotions account for 8.7% of recorded prices in 2024 and 9.74% in 2025. Prevalence varies by category. In 2024 it ranges from 5.7% for Bakery to 9.3% for Pantry, in 2025 it ranges from 8% for Protein to 13.5% for Bakery. These describe observed price records, not the percentage of stores offering any promotion or size of promotional discounts.
+
+## A higher shelf price can mean a lower unit price
+
+```{r q2-price-reversal}
+price_example <- prices_units |>
+  filter(
+    product_id == "P01",
+    observation_date == as.Date("2024-04-15"),
+    store_id %in% c("S0001", "S0011")
+  ) |>
+  arrange(store_id) |>
+  select(store_id, quantity_base, shelf_price_usd, unit_price)
+
+report_table(
+  price_example,
+  digits = c(0, 0, 2, 4),
+  col.names = c("Store", "Quantity (oz)", "Shelf price (USD)", "Unit price (USD/oz)"),
+  caption = "White rice on April 15, 2024 (both records are nonpromotional)."
+)
+```
+
+Store `S0011` charges \$1.84 for 24 ounces of rice, while `S0001` charges \$1.61 for 16 ounces. Although `S0011` has the higher shelf price, its unit price is lower (about \$0.0767/oz versus \$0.1006/oz). This offers more rice per dollar but requires a larger initial purchase.
+
+An overall mean shelf price cannot fairly rank stores since it mixes different products, package sizes, and observed product coverage. A store can appear expensive just because it sells bigger packages or has more expensive product categories represented. Fair comparisons need matched products with standardized quantities, or a complete basket with the same quantities.
+
+# 3. When are two grocery stores genuinely comparable?
+
+Here we compare Valley Basket - Yolo 1 (store $a$, `S0001`) with Daylight Discount - Yolo 4 (store $b$, `S0004`). They are in the same county and have different banners. Here we restrict prices to April 15, 2025 and match products by `product_id`.
+
+Using store $b$ as the baseline, define
+
+$$
+\Delta_j = U_{ajt} - U_{bjt},
+\qquad
+R_j = 100\frac{U_{ajt} - U_{bjt}}{U_{bjt}}.
+$$
+
+A positive $R_j$ means Valley Basket is more expensive for product $j$ and a negative value means it is cheaper.
+
+```{r q3-matching}
+a_prices <- prices_units |>
+  filter(
+    observation_date == as.Date("2025-04-15"),
+    store_id == "S0001"
+  ) |>
+  select(
+    product_id, generic_product, comparison_base_unit,
+    U_a = unit_price, promo_a = promotion_flag
+  )
+
+b_prices <- prices_units |>
+  filter(
+    observation_date == as.Date("2025-04-15"),
+    store_id == "S0004"
+  ) |>
+  select(
+    product_id,
+    U_b = unit_price, promo_b = promotion_flag
+  )
+
+matched <- inner_join(
+  a_prices, b_prices,
+  by = "product_id",
+  relationship = "one-to-one"
+) |>
+  mutate(
+    Delta = U_a - U_b,
+    R = 100 * Delta / U_b
+  )
+
+# remove promotional records from each store before looking at overlap
+a_regular <- a_prices |> filter(promo_a == "No")
+b_regular <- b_prices |> filter(promo_b == "No")
+
+matched_regular <- matched |>
+  filter(promo_a == "No", promo_b == "No")
+```
+
+## Product overlap
+
+```{r q3-overlap}
+
+overlap_summary <- function(a, b) {
+  shared <- length(intersect(a$product_id, b$product_id))
+  combined <- length(union(a$product_id, b$product_id))
+  
+  c(
+    nrow(a),
+    nrow(b),
+    shared,
+    nrow(a) - shared,
+    nrow(b) - shared,
+    100 * shared / nrow(a),
+    100 * shared / nrow(b),
+    100 * shared / combined
+  )
+}
+
+overlap <- tibble(
+  Measure = c(
+    "Products at a",
+    "Products at b",
+    "Shared products",
+    "Only at a",
+    "Only at b",
+    "Shared / products at a (%)",
+    "Shared / products at b (%)",
+    "Shared / union (%)"
+  ),
+  All = overlap_summary(a_prices, b_prices),
+  No_promotions = overlap_summary(a_regular, b_regular)
+)
+
+report_table(
+  overlap,
+  digits = 1,
+  col.names = c("Measure", "All records", "No promotions"),
+  caption = "Product overlap on April 15, 2025."
+)
+```
+
+The stores share 28 products which is 73.7% of Valley Basket's 38 products and 93.3% of Daylight Discount's 30. Their union contains 40 products, giving a shared union overlap of 70%
+
+Products recorded only at Valley basket are `r paste(setdiff(a_prices$product_id, b_prices$product_id), collapse = ", ")`.
+Those recorded only at Daylight Discount are `r paste(setdiff(b_prices$product_id, a_prices$product_id), collapse = ", ")`. 
+
+## Matched price differences
+
+```{r q3-differences}
+difference_summary <- function(data) {
+  c(
+    nrow(data),
+    mean(data$R),
+    median(data$R),
+    IQR(data$R),
+    100 * mean(data$Delta < 0),
+    100 * mean(data$Delta > 0),
+    100 * mean(data$Delta == 0)
+  )
+}
+
+price_comparison <- tibble(
+  Measure = c(
+    "Matched products",
+    "Mean R (%)",
+    "Median R (%)",
+    "IQR of R (percentage points)",
+    "Store a cheaper (%)",
+    "Store b cheaper (%)",
+    "Equal prices (%)"
+  ),
+  All = difference_summary(matched),
+  No_promotions = difference_summary(matched_regular)
+)
+
+report_table(
+  price_comparison,
+  digits = 2,
+  col.names = c("Measure", "All records", "No promotions"),
+  caption = "Matched percentage differences (store b is baseline)."
+)
+
+rice_comparison <- matched |>
+  filter(product_id == "P01")
+```
+
+Across the 28 shared products, Valley Basket's unit prices are 16.01% higher on average, with a median difference of 11.25% and an IQR of 25.70 percentage points. Valley Basket is cheaper for 7 of 28 products (25%), while Daylight Discount is cheaper for 21 (75%) with no ties.
+
+For white rice, the unit prices are
+\$`r sprintf("%.6f", rice_comparison$U_a)`/oz at Valley Basket and \$`r sprintf("%.6f", rice_comparison$U_b)`/oz at Daylight Discount.
+
+So, $\Delta_j$ is `r sprintf("%.6f", rice_comparison$Delta)` dollars per ounce (Valley Basket cheaper for this product). Dollar differences across incompatible base units are not averaged.
+
+
+```{r q3-plot, fig.height = 6, fig.width = 6.5}
+matched |>
+  mutate(
+    Product = paste(product_id, generic_product),
+    Product = reorder(Product, R)
+  ) |>
+  ggplot(aes(x = R, y = Product)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") + 
+  geom_point(size = 2, color = "steelblue") +
+  labs(
+    title = "Daylight Discount is cheaper for most shared products",
+    subtitle = "Valley Basket versus Daylight Discount, Yolo (April 15, 2025)",
+    x = "Unit price difference relative to Daylight Discount (%)",
+    y = NULL,
+    caption = "Simulated data. All 28 shared products with promotions included."
+  ) +
+  theme(
+    axis.text.y = element_text(size = 8),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+Excluding promotional records reduces the shared set from 28 to 23 products and shared union overlap from 70% to 57.5%. The mean percentage difference falls to 11.17% and the median to 10.13%. Daylight Discount is cheaper for 17 of 23 shared products (73.9%). The general conclusion is still the same although both the prices represented and the comparison sample depend on promotions.
+
+Being cheaper for most products does not guarantee a cheaper complete basket. For a common complete basket with required quantities $q_{bj}$, its cost difference depends on $\sum_{j \in J_b} q_{bj}\Delta_j$, not the number of products with positive or negative differences. Quantities purchased and the size of each price difference can outweigh a majority of small savings.
+
+# 4. Does the cheapest store depend on the shopping basket?
+
+Here we compare the three baskets in Yolo County on April 15, 2025, including recorded promotional prices. The basket cost is
+
+$$
+B_{sbt} = \sum_{j \in J_b} q_{bj}U_{sjt}
+$$
+
+provided every required product in $J_b$ has an observed unit price. Coverage is
+
+$$
+C_{sbt}
+= \frac{\#\{j \in J_b : U_{sjt}\text{ observed}\}}{|J_b|}.
+$$
+
+A basket receives a cost and rank only when $C_{sbt} = 1$. Otherwise, its cost remains as `NA`.
+
+```{r q4-basket-costs}
+basket_definitions <- basket_items |>
+  left_join(
+    products |>
+      select(product_id, comparison_base_unit),
+    by = "product_id",
+    relationship = "many-to-one"
+  )
+
+stopifnot(
+  !anyDuplicated(basket_items[c("basket_id", "product_id")]),
+  all(!is.na(basket_definitions$comparison_base_unit)),
+  all(basket_definitions$base_unit ==
+        basket_definitions$comparison_base_unit),
+  all(!is.na(basket_definitions$quantity_in_base_units)),
+  all(basket_definitions$quantity_in_base_units > 0)
+)
+
+prices_2025 <- prices_units |>
+  filter(observation_date == as.Date("2025-04-15")) |>
+  select(store_id, product_id, unit_price)
+
+# make every required store basket product combo
+basket_lines_2025 <- stores |>
+  select(store_id) |>
+  cross_join(basket_definitions) |>
+  left_join(
+    prices_2025,
+    by = c("store_id", "product_id"),
+    relationship = "many-to-one"
+  )
+
+basket_costs_2025 <- basket_lines_2025 |>
+  group_by(store_id, basket_id) |>
+  summarise(
+    required = n(),
+    observed = sum(!is.na(unit_price)),
+    coverage = observed / required,
+    basket_cost = if (all(!is.na(unit_price))) {
+      sum(quantity_in_base_units * unit_price)
+    } else {
+      NA_real_
+    },
+    .groups = "drop"
+  ) |>
+  left_join(
+    stores |> select(store_id, store_label, county_fips),
+    by = "store_id",
+    relationship = "many-to-one"
+  )
+
+basket_order <- c("essentials_12", "balanced_19", "expanded_25")
+
+yolo_baskets <- basket_costs_2025 |>
+  filter(county_fips == "06113") |>
+  mutate(basket_id = factor(basket_id, levels = basket_order))
+```
+
+The essentials, balanced, and expanded baskets require 12, 19, and 25 distinct products respectively. The calculation uses fixed quantities in base units rather than rounding purchasing up to whole packages.
+
+## Coverage and eligible stores
+
+```{r q4-coverage}
+coverage_table <- yolo_baskets |>
+  mutate(
+    Coverage = sprintf(
+      "%d/%d (%.1f%%)", observed, required, 100 * coverage
+    )
+  ) |>
+  select(store_id, basket_id, Coverage) |>
+  pivot_wider(names_from = basket_id, values_from = Coverage) |>
+  select(store_id, all_of(basket_order)) |>
+  arrange(store_id)
+
+report_table(
+  coverage_table,
+  col.names = c("Store", "Essentials", "Balanced", "Expanded"),
+  caption = "Observed/required products and coverage percentage, Yolo, April 15, 2025."
+)
+```
+
+Three of Yolo's seven stores have complete essentials coverage. Those are `S0001` (Valley Basket), `S0002` (GreenGrocer), and `S0003` (Harvest Foods). Only `S0001` and `S0002` have complete balanced and expanded baskets. Incomplete coverage indicates unrecorded prices, not that a store is expensive or cannot sell those items.
+
+## Complete costs and rankings
+
+```{r q4-rankings}
+eligible_baskets <- yolo_baskets |>
+  filter(coverage == 1, !is.na(basket_cost)) |>
+  group_by(basket_id) |>
+  mutate(rank = min_rank(basket_cost)) |>
+  ungroup()
+
+rank_table <- eligible_baskets |>
+  arrange(basket_id, rank) |>
+  select(basket_id, store_id, basket_cost, rank)
+
+report_table(
+  rank_table,
+  digits = c(0, 0, 2, 0),
+  col.names = c("Basket", "Store", "Cost (USD)", "Rank"),
+  caption = "Rankings among stores with complete recorded baskets."
+)
+
+basket_summary <- eligible_baskets |>
+  group_by(basket_id) |>
+  summarise(
+    Complete_stores = n(),
+    Minimum = min(basket_cost),
+    Maximum = max(basket_cost),
+    Gap = Maximum - Minimum,
+    Gap_pct = 100 * Gap / Minimum,
+    .groups = "drop"
+  )
+
+report_table(
+  basket_summary,
+  digits = 2,
+  col.names = c(
+    "Basket", "Stores", "Min (USD)", "Max (USD)",
+    "Gap (USD)", "Gap (%)"
+  ),
+  caption = "Within-basket ranges; percentage gaps use the cheapest eligible cost."
+)
+```
+
+Essentials costs range from \$56.19 at Valley Basket to \$66.95 at GreenGrocer (Harvest Foods is between at \$57.22). Balanced costs range from \$85.73 to \$100.73, and expanded costs from \$123.28 to \$141.19. Valley Basket is cheapest and GreenGrocer most expensive in each eligible comparison.
+
+```{r q4-plot, fig.height = 3.5}
+eligible_baskets |>
+  mutate(
+    Store = factor(
+      store_id,
+      levels = c("S0002", "S0003", "S0001"),
+      labels = c("GreenGrocer", "Harvest Foods", "Valley Basket")
+    )
+  ) |>
+  ggplot(aes(x = basket_cost, y = Store)) +
+  geom_point(size = 2.5, color = "#245773") +
+  facet_wrap(
+    vars(basket_id),
+    nrow = 1,
+    scales = "free"
+  ) +
+  labs(
+    title = "Complete basket costs in Yolo County",
+    subtitle = "April 15, 2025 (only stores with all required prices)",
+    x = "Complete basket cost (USD)",
+    y = NULL,
+    caption = paste(
+      "Simulated teaching data.",
+      "Eligible stores: essentials n = 3; balanced n = 2; expanded n = 2.",
+      sep = "\n"
+    )
+  )
+```
+
+## Can basket composition reverse the ranking?
+
+The ranking does not reverse here. Valley Basket is still cheaper than GreenGrocer across all three baskets. Harvest Foods cannot be ranked for the larger baskets since its coverage is incomplete.
+
+A reversal is possible since the cost difference between stores $a$ and $c$ is
+
+$$
+B_{abt}-B_{cbt}
+= \sum_{j \in J_b}q_{bj}(U_{ajt}-U_{cjt}). 
+$$
+
+For some hypothetical sample, store $a$ could be \$1 cheaper per base unit for one product but \$2 more expensive for another. Quantities of 3 and 1 give a basket difference of $3(-1)+1(2) = -1$ dollar, while quantities of 1 and 3 give $1(-1)+3(2)=5$ dollars. Changing the products or quantities can thus reverse which store is cheapest.
+
+# 5. What makes a numerical summary useful, or misleading, for shopping decisions?
+
+Different summaries answer different shopping questions. Using the April 15, 2025 comparison from question 3, store $a$ is Valley Basket (`S0001`) and baseline store $b$ is Daylight Discount (`S0004`).
+
+- Frequency: Daylight Discount is cheaper for 21 of 28 shared products (75%). This counts products equally no matter their quantities purchased or the size of the savings.
+- Location: The mean and median of $R_j$ are 16.01% and 11.25%. This describes relative price differences across matched products.
+- Dispersion: The IQR of $R_j$ is 25.70 percentage points. This shows that the differences vary across products a good amount.
+- Fixed basket: Valley Basket's complete essentials basket costs \$56.19. Daylight Discount has only 8 of the 12 required prices, so its basket cost is `NA` and cannot be compared.
+
+## Differences by product category
+
+```{r q5-category}
+category_comparison <- matched |>
+  group_by(category = products$category[
+    match(product_id, products$product_id)
+  ]) |>
+  summarise(
+    Products = n(),
+    Median_R = median(R),
+    .groups = "drop"
+  )
+
+report_table(
+  category_comparison,
+  digits = 2,
+  col.names = c("Category", "Shared products", "Median R (%)"),
+  caption = "Matched category comparisons (Daylight Discount is baseline)."
+)
+```
+
+Valley Basket's median relative difference is 21.39% for Dairy but -2.92% for Produce. So, the overall comparison can hide differences relevant to shoppers who buy mainly from particular categories.
+
+## Distribution of complete essentials-basket costs
+
+```{r q5-county-summary}
+yolo_essentials <- eligible_baskets |>
+  filter(basket_id == "essentials_12")
+
+essentials_summary <- yolo_essentials |>
+  summarise(
+    Stores = n(),
+    Minimum = min(basket_cost),
+    Median = median(basket_cost),
+    Mean = mean(basket_cost),
+    Maximum = max(basket_cost),
+    Range = Maximum - Minimum
+  )
+
+report_table(
+  essentials_summary,
+  digits = 2,
+  caption = paste(
+    "Yolo essentials-basket costs on April 15, 2025;",
+    "all monetary summaries are USD."
+  )
+)
+```
+
+In these eligible Yolo stores, costs range from \$56.19 to \$66.95, a spread of \$10.75. The median is \$57.22 and the mean is \$60.12. The highest cost raises the mean above the median. This describes only the three stores with complete recorded essentials prices.
+
+The essentials basket panel in question 4 shows these three eligible store costs. GreenGrocer's higher cost pulls the mean above the median, while Valley Basket and Harvest Foods have similar costs.
+
+## Can the majority-product comparison disagree with a basket?
+
+The chosen pair cannot establish an actual reversal because Daylight Discount's essentials basket is incomplete. 
+
+For some hypothetical sample, say three products each have a required quantity of one base unit. Store A charges \$1, \$1, and \$10, while store B charges \$2, \$2, and \$5. Store A is cheaper for two of three products, but its complete basket costs \$12 versus \$9 at store B.
+
+For a shopper purchasing the specified quantities, $B_{sbt}$ is more directly relevant than the fraction of products that are cheaper. A single average hides product specific differences, dispersion, coverage, and the quantities a shopper intends to buy. 
+
+
+# 6. How did prices change between April 2024 and April 2025?
+
+Here we match observations by store and product across April 15, 2024 and April 15, 2025. Using 2024 as the baseline, define
+
+$$
+\Delta_{sj} = U_{sj,2025}-U_{sj,2024},
+\qquad
+R_{sj} = 100\frac{U_{sj,2025}-U_{sj,2024}}{U_{sj,2024}}. 
+$$
+
+Absolute changes keep each product's base unit. Percentage changes are dimensionless and can be summarized across the matched pairs, with each pair getting equal weight.
+
+## Matching and coverage
+
+```{r q6-match}
+two_waves <- prices_units |>
+  filter(observation_date %in% as.Date(c("2024-04-15", "2025-04-15"))) |>
+  mutate(year = format(observation_date, "%Y")) |>
+  select(
+    store_id, product_id, year,
+    unit_price, shelf_price_usd, quantity_base, promotion_flag
+  )
+
+stopifnot(
+  !anyDuplicated(two_waves[c("store_id", "product_id", "year")])
+)
+
+expected_matches <- two_waves |>
+  count(store_id, product_id) |>
+  filter(n == 2) |>
+  nrow()
+
+prices_wide <- two_waves |>
+  pivot_wider(
+    names_from = year,
+    values_from = c(
+      unit_price, shelf_price_usd, quantity_base, promotion_flag
+    )
+  )
+
+stopifnot(
+  nrow(prices_wide) ==
+    nrow(distinct(two_waves, store_id, product_id))
+)
+
+matched_changes <- prices_wide |>
+  filter(
+    !is.na(unit_price_2024),
+    !is.na(unit_price_2025)
+  ) |>
+  mutate(
+    Delta = unit_price_2025 - unit_price_2024,
+    R = 100 * Delta / unit_price_2024,
+    Raw_R = 100 * (shelf_price_usd_2025 - shelf_price_usd_2024) / 
+      shelf_price_usd_2024
+  ) |>
+  left_join(
+    products |> select(product_id, category),
+    by = "product_id",
+    relationship = "many-to-one"
+  )
+
+stopifnot(
+  nrow(matched_changes) == expected_matches,
+  !anyDuplicated(matched_changes[c("store_id", "product_id")])
+)
+
+coverage_summary <- tibble(
+  Measure = c(
+    "Potential pairs: 145 stores x 40 products",
+    "Pairs observed in at least one wave",
+    "Pairs observed in both waves",
+    "2024 only pairs",
+    "2025 only pairs",
+    "Matched / potential pairs (%)",
+    "Matched / observed union (%)"
+  ),
+  Value = c(
+    nrow(stores) * nrow(products),
+    nrow(prices_wide),
+    nrow(matched_changes),
+    sum(!is.na(prices_wide$unit_price_2024) &
+          is.na(prices_wide$unit_price_2025)),
+    sum(is.na(prices_wide$unit_price_2024) &
+          !is.na(prices_wide$unit_price_2025)),
+    100 * nrow(matched_changes) / (nrow(stores) * nrow(products)),
+    100 * nrow(matched_changes) / nrow(prices_wide)
+  )
+)
+
+report_table(
+  coverage_summary,
+  digits = 2,
+  caption = "Coverage of store product pairs across the two price waves."
+)
+```
+
+There are 3,638 matched pairs out of 5,800 potential combinations (62.72%) and 5,342 pairs observed in at least one wave (68.1%). The unmatched records comprise 754 pairs observed only in 2024 and 950 only in 2025. Their changes are unknown, so they are excluded from change calculations. The potential pair denominator does not imply that every store stocks every product.
+
+The data was reshaped from long to wide, with separate 2024 and 2025 columns for each store product pair. Checks confirmed that the reshape preserved all 5,342 distinct pairs and that 3,638 of them have observed unit prices in both years.
+
+## Distribution of matched changes and promotions
+
+
+```{r q6-summary}
+regular_changes <- matched_changes |>
+  filter(
+    promotion_flag_2024 == "No",
+    promotion_flag_2025 == "No"
+  )
+
+summarize_changes <- function(data) {
+  # Small tolerance prevents floating-point noise from creating changes.
+  increasing <- data$R > 1e-8
+  decreasing <- data$R < -1e-8
+  unchanged <- abs(data$R) <= 1e-8
+
+  c(
+    nrow(data),
+    mean(data$R),
+    median(data$R),
+    sd(data$R),
+    quantile(data$R, 0.25),
+    quantile(data$R, 0.75),
+    IQR(data$R),
+    sum(increasing),
+    100 * mean(increasing),
+    sum(decreasing),
+    100 * mean(decreasing),
+    sum(unchanged),
+    100 * mean(unchanged)
+  )
+}
+
+change_summary <- tibble(
+  Measure = c(
+    "Matched pairs",
+    "Mean change (%)",
+    "Median change (%)",
+    "SD (percentage points)",
+    "Q1 (%)",
+    "Q3 (%)",
+    "IQR (percentage points)",
+    "Increasing: count",
+    "Increasing (%)",
+    "Decreasing: count",
+    "Decreasing (%)",
+    "Unchanged: count",
+    "Unchanged (%)"
+  ),
+  All = summarize_changes(matched_changes),
+  No_promotions = summarize_changes(regular_changes)
+)
+
+report_table(
+  change_summary,
+  digits = 2,
+  col.names = c("Measure", "All matched pairs", "No promotions"),
+  caption = "Unit-price changes from April 15, 2024 to April 15, 2025."
+)
+```
+
+Across all matched pairs, the mean increase is 5.64% and the median is 4.9%. The standard deviation is 11.43 percentage points, showing a notable amount of variation. Prices increase for 2,562 pairs, decrease for 1,052, and remain unchanged for 24.
+
+Excluding promotions at either date leaves 3,002 pairs. The mean increase becomes 5.46%, the median 4.91% and the standard deviation 8.38 percentage points. The overall increase is still apparent, but variability is lower. 
+
+## Category comparisons
+
+```{r q6-categories}
+category_changes <- matched_changes |>
+  group_by(category) |>
+  summarise(
+    Pairs = n(),
+    Mean = mean(R),
+    Median = median(R),
+    .groups = "drop"
+  )
+
+report_table(
+  category_changes,
+  digits = 2,
+  col.names = c("Category", "Matched pairs", "Mean (%)", "Median (%)"),
+  caption = "Matched percentage changes by product category."
+)
+```
+
+Category means range from 3.39% for Produce to 7.77% for Protein, compared with 5.64% overall. The overall mean weights categories by their number of matched pairs, not an equally weighted average of category means.
+
+```{r q6-plot, fig.height = 3.8}
+ggplot(matched_changes, aes(x = category, y = R)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_boxplot(fill = "steelblue", outlier.alpha = 0.35) +
+  labs(
+    title = "Matched unit price changes vary within and across categories",
+    subtitle = "April 15, 2024 to April 15, 2025 (promotions included)",
+    x = "Product category",
+    y = "Unit price change relative to 2024 (%)",
+    caption = paste(
+      "Simulated data. n = 3,638 matched store product pairs.",
+      "Category sample sizes are reported in the table."
+    )
+  )
+```
+
+## Package sizes and interpretation
+
+```{r q6-package-example}
+package_example <- matched_changes |>
+  filter(store_id == "S0009", product_id == "P01") |>
+  transmute(
+    `2024 oz` = quantity_base_2024,
+    `2025 oz` = quantity_base_2025,
+    `2024 USD` = shelf_price_usd_2024,
+    `2025 USD` = shelf_price_usd_2025,
+    `Shelf change (%)` = Raw_R,
+    `Unit change (%)` = R
+  )
+
+report_table(
+  package_example,
+  digits = 2,
+  caption = "White rice at S0009: package-price and unit-price changes."
+)
+```
+
+At `S0009`, the rice package grows from 24 to 26 ounces while its price rises from \$2.54 to \$2.67. The shelf price increases 5.12%, but the standardized price decreases 2.97%. So, package size changes can reverse the direction of the comparison.
+
+Subtracting the means of all records from the two waves would compare different sets of store product observations. For example, cheaper products appearing only in 2025 could lower that wave's mean even if every matched price increased. Pooling unit price levels also mixes incompatible units. Matching fixes the comparison set, while percentage changes provide a common scale.
+
+These are matched nominal changes in simulated prices, not an inflation index. The promotion sensitivity check changes the comparison sample and does not isolate a promotion effect.
+
+# 7. Does the number of stores equal the number of distinct banners or owning units?
+
+Here we join stores to banners and use `ownership_unit_id_sim` to count owners.
+
+```{r q7-prepare}
+stores_owners <- stores |>
+  left_join(
+    banners,
+    by = "banner_id",
+    relationship = "many-to-one"
+  )
+
+stopifnot(
+  nrow(stores_owners) == nrow(stores),
+  !anyNA(stores_owners$banner_name),
+  !anyNA(stores_owners$store_type),
+  !anyNA(stores_owners$ownership_unit_id_sim),
+  !anyNA(stores_owners$snap_authorized_sim),
+  all(stores_owners$snap_authorized_sim %in% c("Yes", "No"))
+)
+
+county_ownership <- stores_owners |>
+  group_by(county_fips, county_label) |>
+  summarise(
+    Stores = n(),
+    Banners = n_distinct(banner_id),
+    Owners = n_distinct(ownership_unit_id_sim),
+    Owners_per_store = Owners / Stores,
+    Largest_banner_pct = 100 * max(table(banner_id)) / Stores,
+    Largest_owner_pct = 100 * max(table(ownership_unit_id_sim)) / Stores,
+    .groups = "drop"
+  )
+```
+
+## County counts and shares
+
+```{r q7-county-table}
+report_table(
+  county_ownership |>
+    arrange(county_label) |>
+    select(-county_fips),
+  digits = c(0, 0, 0, 0, 2, 1, 1),
+  col.names = c(
+    "County", "Stores", "Banners", "Owners",
+    "Owners/store", "Top banner (%)", "Top owner (%)"
+  ),
+  caption = "Undated simulated store roster (shares use stores within each county)."
+)
+```
+
+The owner unit ratio is the number of distinct simulated owners divided by the county's store count. The largest banner and largest owner shares are percentages of county study stores belonging to the most frequent banner or owner.
+
+## Equal store counts, different composition
+
+```{r q7-equal-count}
+yolo_store_count <- county_ownership |>
+  filter(county_fips == "06113") |>
+  pull(Stores)
+
+comparison_counties <- county_ownership |>
+  filter(Stores == yolo_store_count) |>
+  arrange(county_label)
+
+report_table(
+  comparison_counties |>
+    select(county_label, Stores, Banners, Owners),
+  col.names = c("County", "Stores", "Banners", "Owners"),
+  caption = "Reproducible comparison (all counties with Yolo's store count)."
+)
+```
+
+Contra Costa, San Francisco, and Yolo each have seven stores. Their banner counts are 6, 6, and 7, while their owner counts are 4, 5, and 5. So, equal store counts do not imply equal banner or ownership diversity. Contra Costa's largest owner accounts for 42.9% of its stores, compared with 28.6% in San Francisco and Yolo.
+
+```{r q7-store-types, fig.height = 6, fig.width = 6.5}
+store_type_shares <- stores_owners |>
+  count(county_fips, county_label, store_type, name = "Stores") |>
+  group_by(county_fips, county_label) |>
+  mutate(Share = Stores / sum(Stores)) |>
+  ungroup()
+
+ggplot(
+  store_type_shares,
+  aes(x = Share, y = county_label, fill = store_type)
+) +
+  geom_col() +
+  scale_x_continuous(labels = scales::label_percent()) +
+  labs(
+    title = "Store type composition varies across counties",
+    subtitle = "Undated study roster (denominator is each county's store count)",
+    x = "Share of county study stores",
+    y = NULL,
+    fill = "Store type",
+    caption = "Simulated data. 145 stores in 24 counties."
+  ) +
+  theme(legend.position = "bottom") +
+  guides(fill = guide_legend(nrow = 2))
+```
+
+The equal-count counties also differ in store types. Convenience stores account for 3/7 (42.9%) of San Francisco's stores, 1/7 (14.3%) of Contra Costa's, and 0/7 of Yolo's. This describes study roster, not actual stores in these counties.
+
+## Simulation SNAP authorization
+
+```{r q7-snap}
+snap_summary <- stores_owners |>
+  group_by(county_label) |>
+  summarise(
+    Stores = n(),
+    Yes = sum(snap_authorized_sim == "Yes"),
+    No = sum(snap_authorized_sim == "No"),
+    Yes_pct = 100 * Yes / Stores,
+    No_pct = 100 * No / Stores,
+    .groups = "drop"
+  )
+
+report_table(
+  snap_summary,
+  digits = 1,
+  col.names = c("County", "Stores", "Yes", "No", "Yes (%)", "No (%)"),
+  caption = "Simulated SNAP status (percentages use all study stores in each county)."
+)
+```
+
+Overall, 117 of 145 stores (80.7%) are labeled SNAP-authorized and 28 (19.3%) are not. Authorization can differ within a banner like how SaveMore store `S0005` in Yolo is labeled Yes and SaveMore store `S0012` in Sacramento is labeled No. So, authorization must be taken from individual store records.
+
+Counting "Independent operators" as one corporation would understate ownership diversity since the label groups unrelated operators. More distinct owners do not imply lower prices. These counts do not establish a price relationship nor causation.
+
+Shares of study stores are not real market shares or evidence of market power. The simulated roster does not contain sales or expenditure shares. The simulated SNAP authorization does not measure household participation or purchases. As well as this the data is simply not exhaustive enough to look into market shares and market power.
+
+# 8. Where are stores numerous, and where are they numerous relative to population?
+
+Let $S_c$ be the number of study stores in county $c$ and $N_c$ is simulated 2024 population. Store density is
+
+$$
+D_c = 10{,}000\frac{S_c}{N_c}.
+$$
+
+This measures study stores per 10,000 simulated residents. The store roster is undated and it has denominator `population_2024_sim`.
+
+```{r q8-county-data}
+county_store_counts <- stores |>
+  count(county_fips, name = "S_c")
+
+stopifnot(
+  !anyNA(county_context$county_fips),
+  !anyDuplicated(county_context$county_fips),
+  !anyNA(stores$county_fips),
+  all(stores$county_fips %in% county_context$county_fips)
+)
+
+county_stores <- county_context |>
+  left_join(
+    county_store_counts,
+    by = "county_fips",
+    relationship = "one-to-one"
+  ) |>
+  mutate(
+    S_c = coalesce(S_c, 0L),
+    N_c = population_2024_sim,
+    D_c = if_else(
+      !is.na(N_c) & N_c > 0,
+      10000 * S_c / N_c,
+      NA_real_
+    )
+  )
+
+
+stopifnot(
+  nrow(county_stores) == nrow(county_context),
+  !anyNA(county_stores$D_c),
+  !anyNA(county_stores$urban_rural_sim)
+)
+
+county_stores <- county_stores |>
+  mutate(
+    count_rank = min_rank(desc(S_c)),
+    density_rank = min_rank(desc(D_c)),
+    rank_change = count_rank - density_rank
+  )
+```
+
+## County summaries
+
+```{r q8-summary}
+county_summary <- county_stores |>
+  select(S_c, N_c, D_c) |>
+  pivot_longer(everything(), names_to = "Measure", values_to = "Value") |>
+  group_by(Measure) |>
+  summarise(
+    Mean = mean(Value),
+    Median = median(Value),
+    SD = sd(Value),
+    Q1 = quantile(Value, 0.25),
+    Q3 = quantile(Value, 0.75),
+    IQR = IQR(Value),
+    Min = min(Value),
+    Max = max(Value),
+    .groups = "drop"
+  )
+
+county_summary_display <- county_summary |>
+  pivot_longer(
+    cols = -Measure,
+    names_to = "Statistic",
+    values_to = "Value"
+  ) |>
+  mutate(
+    Statistic = factor(
+      Statistic,
+      levels = c("Mean", "Median", "SD", "Q1", "Q3", "IQR", "Min", "Max")
+    )
+  ) |>
+  pivot_wider(names_from = Measure, values_from = Value) |>
+  arrange(Statistic) |>
+  select(Statistic, S_c, N_c, D_c)
+
+report_table(
+  county_summary_display,
+  digits = 2,
+  col.names = c(
+    "Statistic", "Stores", "2024 residents", "Stores per 10,000"
+  ),
+  caption = "County level summaries across 24 simulated counties."
+)
+```
+
+Across 24 counties, the median store count is 6 and the median density is 2.11 stores per 10,000 residents. Counts range from 4 to 9, while densities range from 1.4 in San Mateo to 3.72 in Lake.
+
+## Counts, denominators, and rankings
+
+```{r q8-rankings}
+report_table(
+  county_stores |>
+    arrange(density_rank) |>
+    select(county_name, S_c, N_c, D_c, count_rank, density_rank),
+  digits = c(0, 0, 0, 2, 0, 0),
+  col.names = c(
+    "County", "Stores", "2024 population", "Density",
+    "Count rank", "Density rank"
+  ),
+  caption = "County rankings by stores count and stores per 10,000 residents."
+)
+```
+
+Rank 1 denotes the highest value. Ties receive the same minimum rank, so the next ranks my skip positions. Alameda, Sacramento, and Santa Clara tie for the largest count with 9 stores each. Lake ranks first by density despite only have 4 stores ($10{,}000(4/10{,}743)=3.72$ stores per 10,000 residents).
+
+
+```{r q8-rank-changes}
+largest_changes <- county_stores |>
+  arrange(desc(abs(rank_change)), county_name) |>
+  slice_head(n = 5)
+
+report_table(
+  largest_changes |>
+    select(county_name, count_rank, density_rank, rank_change),
+  col.names = c("County", "Count rank", "Density rank", "Change"),
+  caption = "Five largest absolute rank changes (ties in selected are reslved alphabetically)."
+)
+```
+
+Positive changes indicate movement toward rank 1 after population adjustment. Lake moves from tied rank 20 to rank 1, while San Mateo moves from tied rank 7 to rank 24. The denominator changes which counties appear well supplied.
+
+## Metro and nonmetro comparison
+
+```{r q8-groups}
+group_summary <- county_stores |>
+  group_by(urban_rural_sim) |>
+  summarise(
+    Counties = n(),
+    Mean_count = mean(S_c),
+    Mean_density = mean(D_c),
+    Median_density = median(D_c),
+    IQR_density = IQR(D_c),
+    .groups = "drop"
+  )
+
+report_table(
+  group_summary,
+  digits = 2,
+  col.names = c(
+    "Group", "Counties", "Mean stores",
+    "Mean density", "Median density", "Density IQR"
+  ),
+  caption = "County level summaries by simulated metro classification"
+)
+```
+
+The 19 metro counties average 6.58 stores, compared with 4 among the 5 nonmetro counties. However, mean county density is lower in metro counties (2.09 versus 2.96 stores per 10,000 residents). These are equally weighted averages of county densities, not rates from pooled group populations.
+
+```{r q8-plot, fig.height = 5.5}
+ggplot(
+  county_stores,
+  aes(
+    x = D_c,
+    y = reorder(county_name, D_c),
+    color = urban_rural_sim
+  )
+) + 
+  geom_point(size = 2.3) +
+  labs(
+    title = "Population adjustment changes the comparison of store availability",
+    subtitle = "Undated study store counts divided by simulated 2024 population",
+    x = "Study stores per 10,000 residents",
+    y = NULL,
+    color = "County group",
+    caption = "Simulated data. All 24 counties, 145 study stores."
+  ) +
+  theme(legend.position = "bottom")
+```
+
+A high county density does not say that a particular household has a nearby or affordable store. Stores may cluster far from some residents, and density does not measure prices or household resources. Assessing proximity requires stores and household locations, within county population distribution, travel routes, and transit availability. The store roster is a teaching sample.
+
+# 9. What if two measures of the food environment disagree?
+
+Here we compare the undated study store roster with the alternative 2022 food-environment indicators. The study density $D_c$ uses simulated 2024 population, while the alternative density uses `population_2022_est_sim`. The counts also represent different retailer definitions, so their differences are not changes over time.
+
+## Matching counties and comparing measures
+
+```{r q9-compare}
+# normalize alternative file's fips
+environment_2022 <- food_environment_raw |>
+  mutate(
+    county_fips = str_pad(county_fips_raw, width = 5, pad = "0")
+  )
+
+stopifnot(
+  !anyNA(environment_2022$county_fips),
+  !anyDuplicated(environment_2022$county_fips),
+  setequal(county_stores$county_fips, environment_2022$county_fips)
+)
+
+county_comparison <- county_stores |>
+  left_join(
+    environment_2022 |>
+      select(
+        county_fips,
+        population_2022_est_sim,
+        food_outlets_2022_est_sim,
+        food_outlets_per_10000_2022_sim
+      ),
+    by = "county_fips",
+    relationship = "one-to-one"
+  ) |>
+  mutate(
+    outlets_2022 = food_outlets_2022_est_sim,
+    density_2022 = food_outlets_per_10000_2022_sim,
+    count_difference = outlets_2022 - S_c,
+    count_pct = if_else(
+      !is.na(S_c) & S_c > 0,
+      100 * count_difference / S_c,
+      NA_real_
+    ),
+    density_difference = density_2022 - D_c,
+    density_pct = if_else(
+      !is.na(D_c) & D_c > 0,
+      100 * density_difference / D_c,
+      NA_real_
+    ),
+    alternative_rank = min_rank(desc(density_2022)),
+    rank_change = density_rank - alternative_rank
+  )
+
+# stop if not required measurements are missing
+
+stopifnot(
+  nrow(county_comparison) == nrow(county_stores),
+  !anyNA(county_comparison[c(
+    "S_c", "D_c", "outlets_2022",
+    "density_2022", "population_2022_est_sim"
+  )]),
+  all(county_comparison$population_2022_est_sim > 0),
+  all(abs(
+    county_comparison$density_2022 - 
+      10000 * county_comparison$outlets_2022 /
+      county_comparison$population_2022_est_sim
+  ) <= 0.0005)
+)
+
+report_table(
+  county_comparison |>
+    arrange(county_name) |>
+    select(
+      county_name, S_c, outlets_2022,
+      count_difference, count_pct,
+      density_difference, density_pct
+    ),
+  digits = c(0, 0, 0, 0, 1, 3, 1),
+  col.names = c(
+    "County", "Study n", "2022 n",
+    "Count diff.", "Count (%)", "Rate diff.", "Rate (%)"
+  ),
+  caption = "Alternative minus study measures (percentage differences use study baseline)."
+)
+```
+
+All 24 counties match. Count differences are measured in outlets, rate differences are measured in outlets per 10,000 residents. Positive values mean the alternative measure is larger. Percentage differences divide each difference by the corresponding study measure. 
+
+The supplied 2022 rates agree with rates calculated from their 2022 counts and populations within rounding tolerance. This checks internal consistency without assuming agreement with the roster.
+
+## Association and ranking disagreements
+
+```{r q9-association}
+count_rho <- cor(
+  county_comparison$S_c,
+  county_comparison$outlets_2022,
+  method = "spearman"
+)
+
+density_rho <- cor(
+  county_comparison$D_c,
+  county_comparison$density_2022,
+  method = "spearman"
+)
+
+rank_disagreements <- county_comparison |>
+  arrange(desc(abs(rank_change)), county_name) |>
+  slice_head(n = 5)
+
+report_table(
+  rank_disagreements |>
+    select(
+      county_name, D_c, density_2022,
+      density_rank, alternative_rank, rank_change
+    ),
+  digits = c(0, 3, 3, 0, 0, 0),
+  col.names = c(
+    "County", "Study rate", "2022 rate",
+    "Study rank", "2022 rank", "Change"
+  ),
+  caption = "Five largest density rank disagreements (selection ties resolved alphabetically)."
+)
+```
+
+Spearman correlations are `r sprintf("%.3f", count_rho)` for counts and `r sprintf("%.3f", density_rho)` for densities, using 24 counties. Spearman correlation is appropriate since the question concerns whether counties retain similar relative positions. It measures rank association, not equality between the measures.
+
+Rank 1 denotes the highest density, with ties assigned their minimum rank. Butte moves from rank 23 under the study measure to rank 11 under the alternative, while Nevada moves from 6 to 15. So, positive overall association still allows substantial disagreement for individual counties.
+
+```{r q9-plt, fig.height = 4.5}
+ggplot(
+  county_comparison,
+  aes(x = D_c, y = density_2022, color = urban_rural_sim)
+) +
+  geom_abline(
+    intercept = 0, slope = 1,
+    linetype = "dashed", color = "gray50"
+  ) +
+  geom_point(size = 2.5) +
+  coord_equal(
+    xlim = c(0, 6),
+    ylim = c(0, 6),
+    expand = FALSE
+  ) +
+  labs(
+    title = "County outlet densities differ between measures",
+    subtitle = "Study roster versus alternative 2022 indicator",
+    x = "Undated study stores per 10,000 residents\n(2024 population denominator)",
+    y = "2022 outlets per 10,000 residents\n(2022 population denominator)",
+    color = "County group",
+    caption = "Simulated data. n = 24 matched counties (dashed line indicates equality)."
+  ) +
+  theme(legend.position = "bottom")
+```
+
+Both measures give higher mean county densities in the five nonmetro counties than in the 19 metro counties. The study means are 2.96 versus 2.09 and the alternative means are 3.59 versus 2.38 outlets per 10,000 residents. These are equally weighted county means, not pooled population rates.
+
+## Interpreting discrepancies
+
+A discrepancy is not proof of a faulty join. Incorrect county codes, duplicate keys, expanded row counts, or an incorrect denominator would indicate coding problems. The code checks above verify normalized keys, county matching, join cardinality, and the alternative rate's population denominator.
+
+Even after those checks passed, the measures can differ because of retailer definitions, study coverage, and reference periods. The undated study count is not a 2024 census of outlets just because its density uses 2024 population. So, these differences cannot be described as growth or decline between 2022 and 2024.
+
+# 10. How should tract-level food-access information be summarized for a county?
+
+Let $A_k$ be the low-access residents, $N_k$ tract population, and $K_c$ the number of tracts in county $c$. The low-access summaries are then
+
+$$
+L_c^{\mathrm{weighted}}
+=100\frac{\sum_{k\in c}A_k}{\sum_{k\in c}N_k}\%,
+\qquad
+L_c^{\mathrm{unweighted}}
+=\frac{1}{K_c}\sum_{k\in c}100\frac{A_k}{N_k}\%.
+$$
+
+The weighted percentage describes county residents and the unweighted percentage gives each tract equal weight.
+
+## County totals and reconciliation
+
+```{r q10-aggregate}
+tract_access <- tracts_raw |>
+  mutate(county_fips = substr(tract_id, 1, 5))
+
+required_counts <- c(
+  "tract_population_2024_sim",
+  "households_2024_sim",
+  "low_access_residents_2024_sim",
+  "low_income_low_access_residents_2024_sim"
+)
+
+# stop if counts are missing
+stopifnot(
+  !anyNA(tract_access$tract_id),
+  !anyDuplicated(tract_access$tract_id),
+  all(str_detect(tract_access$tract_id, "^[0-9]{11}$")),
+  all(tract_access$county_fips %in% county_context$county_fips),
+  !anyNA(tract_access[required_counts]),
+  all(as.matrix(tract_access[required_counts]) >= 0),
+  all(tract_access$tract_population_2024_sim > 0),
+  all(tract_access$low_access_residents_2024_sim <=
+        tract_access$tract_population_2024_sim),
+  all(tract_access$low_income_low_access_residents_2024_sim <=
+        tract_access$low_access_residents_2024_sim)
+)
+
+county_access <- tract_access |>
+  group_by(county_fips) |>
+  summarise(
+    Tracts = n(),
+    Population = sum(tract_population_2024_sim),
+    Households = sum(households_2024_sim),
+    Low_access = sum(low_access_residents_2024_sim),
+    Low_income_low_access = sum(low_income_low_access_residents_2024_sim),
+    Weighted = 100 * Low_access / Population,
+    Unweighted = mean(
+      100 * low_access_residents_2024_sim / tract_population_2024_sim
+    ),
+    Absolute_gap = abs(Weighted - Unweighted),
+    Low_income_low_access_pct = 100 * Low_income_low_access / Population,
+    .groups = "drop"
+  ) |>
+  left_join(
+    county_context |>
+      select(
+        county_fips, county_name,
+        population_2024_sim, households_2024_sim
+      ),
+    by = "county_fips",
+    relationship = "one-to-one"
+  ) |>
+  mutate(
+    Population_difference = Population - population_2024_sim,
+    Household_difference = Households - households_2024_sim
+  )
+
+stopifnot(
+  setequal(county_access$county_fips, county_context$county_fips),
+  all(county_access$Population_difference == 0),
+  all(county_access$Household_difference == 0)
+)
+
+report_table(
+  county_access |>
+    arrange(county_name) |>
+    select(
+      county_name, Tracts, Population, Households,
+      Low_access, Low_income_low_access
+    ),
+  digits = 0,
+  col.names = c(
+    "County", "Tracts", "Residents", "Households",
+    "Low access", "Low income + low access"
+  ),
+  caption = "Summed simulated 2024 tract counts by county"
+)
+```
+
+The 134 constructed tracts have 684,739 residents across 24 counties. Summed tract populations and household counts exactly match the corresponding 2024 county totals in all 24 counties. No missing counts were excluded or replaced.
+
+```{r q10-percentages}
+report_table(
+  county_access |>
+    arrange(county_name) |>
+    select(
+      county_name, Weighted, Unweighted,
+      Absolute_gap, Low_income_low_access_pct
+    ),
+  digits = 2,
+  col.names = c(
+    "County", "Weighted (%)", "Unweighted (%)",
+    "Gap (pp)", "Low income + low access (%)"
+  ),
+  caption = "Low-access summaries (absolute gaps are percentage points)."
+)
+```
+
+The weighted low-access and low-income + low_access percentages use summed tract residents as their denominators. The unweighted statistic averages tract percentages over the number of tracts reported for each county. Low income + low access residents are a subset of low access residents.
+
+## Reshaping access indicators for comparison
+
+```{r q10-long}
+access_long <- tract_access |>
+  select(
+    tract_id, county_fips, tract_population_2024_sim,
+    low_access_residents_2024_sim,
+    low_income_low_access_residents_2024_sim
+  ) |>
+  pivot_longer(
+    cols = c(
+      low_access_residents_2024_sim,
+      low_income_low_access_residents_2024_sim
+    ),
+    names_to = "indicator",
+    values_to = "count"
+  )
+
+rows_per_tract <- access_long |>
+  count(tract_id)
+
+stopifnot(
+  nrow(access_long) == 2 * nrow(tract_access),
+  all(rows_per_tract$n == 2),
+  !anyDuplicated(access_long[c("tract_id", "indicator")])
+)
+
+# within each indicator each tract's population appears once
+county_access_long <- access_long |>
+  group_by(county_fips, indicator) |>
+  summarise(
+    Residents = sum(count),
+    Population = sum(tract_population_2024_sim),
+    Share = 100 * Residents / Population,
+    .groups = "drop"
+  ) |>
+  left_join(
+    county_context |> select(county_fips, county_name),
+    by = "county_fips",
+    relationship = "many-to-one"
+  ) |>
+  mutate(
+    Indicator = recode(
+      indicator,
+      low_access_residents_2024_sim = "Low access",
+      low_income_low_access_residents_2024_sim = "Low income and low access"
+    )
+  )
+```
+
+The reshape produces 268 rows, exactly two for each of the 134 original tracts. Population is repeated once per indicator, so percentages are calculated separately within each indicator. Summing population across both indicators would double count residents.
+
+```{r q10-plot, fig.height = 6}
+county_order <- county_access |>
+  arrange(Weighted) |>
+  pull(county_name)
+
+county_access_long |>
+  mutate(county_name = factor(county_name, levels = county_order)) |>
+  ggplot(aes(x = Share, y = county_name, color = Indicator)) +
+  geom_point(size = 2.2) +
+  labs(
+    title = "County resident shares with limited food access", 
+    subtitle = "Simulated 2024 counts (denominator is summed county tract population)",
+    x = "Percentage of county residents",
+    y = NULL,
+    color = NULL,
+    caption = "Simulated data. 134 constructed tracts across 24 counties."
+  ) +
+  theme(legend.position = "bottom")
+```
+
+## Why weighting matters
+
+Colusa provides an example. Its four tract populations are 1,493, 1,913, 3,776, and 5,334, with low-access percentages of 63.5%, 25.77%, 27.15%, 37.76% respectively. Their unweighted average is 38.54%, while the resident weighted percentage is
+
+$$
+100\frac{948 + 493 + 1025 + 2014}{1493 + 1913 + 3776 + 5334}
+=100\frac{4480}{12516}
+=35.79\%
+$$
+
+The smallest tract has the highest low-access percentage. It receives 25% of the weight in the unweighted average but only about 11.9% of the resident weight, making the weighted result lower.
+
+So, $L_c^{\mathrm{weighted}}$ answers the question about what share of county residents have low access. The unweighted mean answers the question of what is the average low-access share across tracts. These are different questions even when the county totals are the same.
+
+
+# 11. How are income, poverty, and access to a vehicle related to grocery accessibility?
+
+# 12. Do more shopping options guarantee better food access?
+
+# 13. Can transportation reverse the ranking of the cheapest grocery store?
+
+# 14. What is the grocery-affordability story for Yolo County?
+
+# 15. How can a technically successful join produce statistically incorrect results?
+
+# 16. Formulate an original substantive research question.
+
+# 17. Construct a final integrated statistical story.

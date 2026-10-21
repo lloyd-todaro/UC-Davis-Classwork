@@ -1,0 +1,61 @@
+file,column_name,unit_of_observation,uniqueness_key,recommended_R_type,measurement_unit,description_or_caution
+01_stores.csv,store_id,One store,store_id,character,store key,Primary key for physical teaching store
+01_stores.csv,store_label,One store,store_id,character,store label,"Fictional public-facing label, not guaranteed unique"
+01_stores.csv,banner_id,One store,store_id,character,banner key,Foreign key to 02_banner_ownership
+01_stores.csv,ownership_unit_id_sim,One store,store_id,character,owner key,Fictional owner ID; independent stores have distinct IDs
+01_stores.csv,county_fips_raw,One store,store_id,character,un-padded county FIPS,Pad to five digits before joining
+01_stores.csv,county_label,One store,store_id,character,county label,For checking county keys; not recommended as primary join key
+01_stores.csv,state,One store,store_id,character,state abbreviation,CA for all stores
+01_stores.csv,snap_authorized_sim,One store,store_id,categorical,Yes/No,Fictional authorization status at store level
+01_stores.csv,opened_year_sim,One store,store_id,integer,calendar year,Simulated opening year
+01_stores.csv,source_coverage,One store,store_id,categorical,study-coverage label,Not an exhaustive listing of stores
+02_banner_ownership.csv,banner_id,One banner,banner_id,character,banner key,Primary key for banner and store foreign key
+02_banner_ownership.csv,banner_name,One banner,banner_id,character,retailer banner,Fictional commercial name
+02_banner_ownership.csv,parent_group,One banner,banner_id,categorical,owner grouping,"Independent operators is a grouping, not a single owner ID"
+02_banner_ownership.csv,store_type,One banner,banner_id,categorical,retail format,"Supermarket, discount, convenience and other classes"
+03_products.csv,product_id,One product,product_id,character,product key,Primary key for comparable generic product
+03_products.csv,generic_product,One product,product_id,character,product label,"Comparable generic item, not actual UPC/SKU"
+03_products.csv,category,One product,product_id,categorical,product category,Product-family classification
+03_products.csv,comparison_base_unit,One product,product_id,categorical,oz / fl_oz / count,Measurement base used to standardize prices
+03_products.csv,product_match_note,One product,product_id,character,method note,Cautions about generic matching
+04_price_observations.csv,observation_id,One store-product-date,store_id + product_id + observation_date,character,observation key,"Unique row key, not an amount"
+04_price_observations.csv,store_id,One store-product-date,store_id + product_id + observation_date,character,store key,Foreign key to stores
+04_price_observations.csv,product_id,One store-product-date,store_id + product_id + observation_date,character,product key,Foreign key to products
+04_price_observations.csv,observation_date,One store-product-date,store_id + product_id + observation_date,date,YYYY-MM-DD,"Two observation waves, 2024 and 2025"
+04_price_observations.csv,package_quantity,One store-product-date,store_id + product_id + observation_date,numeric,package_unit,Positive quantity; first interpret package_unit
+04_price_observations.csv,package_unit,One store-product-date,store_id + product_id + observation_date,categorical,oz/lb/g/kg/fl_oz/liter/count/dozen,Convert compatibly to comparison_base_unit
+04_price_observations.csv,shelf_price_usd,One store-product-date,store_id + product_id + observation_date,numeric,USD per package,Positive fictional shelf price
+04_price_observations.csv,promotion_flag,One store-product-date,store_id + product_id + observation_date,categorical,Yes/No,Fictional promotional indicator
+05_basket_items.csv,basket_id,One basket-product,basket_id + product_id,character,basket key,"Part of composite key (basket_id, product_id)"
+05_basket_items.csv,product_id,One basket-product,basket_id + product_id,character,product key,"Part of composite key (basket_id, product_id)"
+05_basket_items.csv,quantity_in_base_units,One basket-product,basket_id + product_id,numeric,product base unit,Positive specified basket quantity
+05_basket_items.csv,base_unit,One basket-product,basket_id + product_id,categorical,oz / fl_oz / count,Must equal product comparison_base_unit
+06_county_context.csv,county_fips,One county,county_fips,character,five-digit county FIPS,Primary county join key
+06_county_context.csv,county_name,One county,county_fips,character,county label,"County label, not a primary key"
+06_county_context.csv,state,One county,county_fips,character,state abbreviation,CA for all counties
+06_county_context.csv,urban_rural_sim,One county,county_fips,categorical,Metro/Nonmetro,Fictional broad classification
+06_county_context.csv,population_2024_sim,One county,county_fips,integer,residents,Simulated county population count
+06_county_context.csv,households_2024_sim,One county,county_fips,integer,households,Simulated household count
+06_county_context.csv,median_household_income_2024_usd_sim,One county,county_fips,numeric,USD/year,Simulated county median household income
+06_county_context.csv,poverty_rate_2024_pct_sim,One county,county_fips,numeric,percent (0-100),Simulated population poverty percentage
+06_county_context.csv,households_no_vehicle_2024_sim,One county,county_fips,integer,households,Simulated households without vehicles
+07_county_food_environment.csv,county_fips_raw,One county,county_fips_raw,character,un-padded county FIPS,Pad to five digits before county join
+07_county_food_environment.csv,population_2022_est_sim,One county,county_fips_raw,integer,residents,Simulated 2022 county population; denominator for outlet rate
+07_county_food_environment.csv,food_outlets_2022_est_sim,One county,county_fips_raw,integer,outlets,Simulated 2022 outlet count under alternative definition
+07_county_food_environment.csv,food_outlets_per_10000_2022_sim,One county,county_fips_raw,numeric,"outlets/10,000 residents",Derived from 2022 outlets and 2022 population
+07_county_food_environment.csv,low_access_residents_share_2022_pct_sim,One county,county_fips_raw,numeric,percent (0-100),Numeric share of residents; NOT an identifier
+07_county_food_environment.csv,indicator_reference_year,One county,county_fips_raw,integer,calendar year,Reference year 2022
+08_tract_food_access.csv,tract_id,One constructed tract,tract_id,character,constructed tract key,Primary key; first 5 digits are county FIPS
+08_tract_food_access.csv,tract_population_2024_sim,One constructed tract,tract_id,integer,residents,Simulated total residents in tract
+08_tract_food_access.csv,households_2024_sim,One constructed tract,tract_id,integer,households,Simulated households in tract
+08_tract_food_access.csv,low_access_residents_2024_sim,One constructed tract,tract_id,integer,residents,Numeric COUNT of low-access residents; NOT identifier
+08_tract_food_access.csv,low_income_low_access_residents_2024_sim,One constructed tract,tract_id,integer,residents,Numeric COUNT of low-income low-access residents; NOT identifier
+08_tract_food_access.csv,households_no_vehicle_2024_sim,One constructed tract,tract_id,integer,households,Simulated households with no vehicle
+08_tract_food_access.csv,tract_poverty_rate_pct_2024_sim,One constructed tract,tract_id,numeric,percent (0-100),Simulated population poverty percentage
+09_tract_store_travel.csv,tract_id,One tract-store alternative,tract_id + store_id,character,tract key,"Part of composite key (tract_id,store_id)"
+09_tract_store_travel.csv,store_id,One tract-store alternative,tract_id + store_id,character,store key,"Part of composite key (tract_id,store_id)"
+09_tract_store_travel.csv,driving_distance_oneway_miles_sim,One tract-store alternative,tract_id + store_id,numeric,miles,Hypothetical driving distance
+09_tract_store_travel.csv,bus_roundtrip_minutes_sim,One tract-store alternative,tract_id + store_id,numeric,minutes,Blank when no service; 0 would mean zero minutes
+09_tract_store_travel.csv,bus_roundtrip_fare_usd_sim,One tract-store alternative,tract_id + store_id,numeric,USD/round trip,ZERO IS VALID for available free-fare trips; blank only when no service
+09_tract_store_travel.csv,car_roundtrip_cost_usd_sim,One tract-store alternative,tract_id + store_id,numeric,USD/round trip,Hypothetical car trip cost
+09_tract_store_travel.csv,bus_service_available_sim,One tract-store alternative,tract_id + store_id,categorical,Yes/No,No is not eligible for bus scenario

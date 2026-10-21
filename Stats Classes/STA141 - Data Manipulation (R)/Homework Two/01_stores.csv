@@ -1,0 +1,146 @@
+store_id,store_label,banner_id,ownership_unit_id_sim,county_fips_raw,county_label,state,snap_authorized_sim,opened_year_sim,source_coverage
+S0001,Valley Basket - Yolo 1,VAL,OWN-VALLEY,6113,Yolo,CA,Yes,2013,teaching_sample
+S0002,GreenGrocer - Yolo 2,GRO,OWN-VALLEY,6113,Yolo,CA,Yes,2002,teaching_sample
+S0003,Harvest Foods - Yolo 3,HAR,OWN-HARVEST,6113,Yolo,CA,Yes,2020,teaching_sample
+S0004,Daylight Discount - Yolo 4,DIS,OWN-DAYLIGHT,6113,Yolo,CA,Yes,2007,teaching_sample
+S0005,SaveMore - Yolo 5,SAV,OWN-DAYLIGHT,6113,Yolo,CA,Yes,2016,teaching_sample
+S0006,Neighborhood Pantry - Yolo 6,LOC,IND-S0006,6113,Yolo,CA,Yes,2019,teaching_sample
+S0007,Bulk Basket - Yolo 7,BOX,OWN-BULK,6113,Yolo,CA,Yes,2015,teaching_sample
+S0008,Valley Basket - Sacramento 1,VAL,OWN-VALLEY,6067,Sacramento,CA,Yes,2014,teaching_sample
+S0009,Valley Basket - Sacramento 2,VAL,OWN-VALLEY,6067,Sacramento,CA,Yes,2022,teaching_sample
+S0010,GreenGrocer - Sacramento 3,GRO,OWN-VALLEY,6067,Sacramento,CA,Yes,2018,teaching_sample
+S0011,Daylight Discount - Sacramento 4,DIS,OWN-DAYLIGHT,6067,Sacramento,CA,Yes,2018,teaching_sample
+S0012,SaveMore - Sacramento 5,SAV,OWN-DAYLIGHT,6067,Sacramento,CA,No,2017,teaching_sample
+S0013,CornerFresh - Sacramento 6,COR,OWN-CORNER,6067,Sacramento,CA,Yes,2017,teaching_sample
+S0014,Town Market - Sacramento 7,TWN,IND-S0014,6067,Sacramento,CA,Yes,2014,teaching_sample
+S0015,Harvest Foods - Sacramento 8,HAR,OWN-HARVEST,6067,Sacramento,CA,Yes,2001,teaching_sample
+S0016,Sunset Mart - Sacramento 9,SUN,OWN-SUNSET,6067,Sacramento,CA,No,2015,teaching_sample
+S0017,Harvest Foods - Solano 1,HAR,OWN-HARVEST,6095,Solano,CA,Yes,2018,teaching_sample
+S0018,Harvest Foods - Solano 2,HAR,OWN-HARVEST,6095,Solano,CA,Yes,2013,teaching_sample
+S0019,CornerFresh - Solano 3,COR,OWN-CORNER,6095,Solano,CA,Yes,1999,teaching_sample
+S0020,SaveMore - Solano 4,SAV,OWN-DAYLIGHT,6095,Solano,CA,No,2014,teaching_sample
+S0021,Town Market - Solano 5,TWN,IND-S0021,6095,Solano,CA,No,2000,teaching_sample
+S0022,Express Stop - Solano 6,EXC,OWN-ROADSIDE,6095,Solano,CA,No,2022,teaching_sample
+S0023,Farm Table Foods - Napa 1,FAR,OWN-FARM,6055,Napa,CA,Yes,2005,teaching_sample
+S0024,Town Market - Napa 2,TWN,IND-S0024,6055,Napa,CA,Yes,2011,teaching_sample
+S0025,GreenGrocer - Napa 3,GRO,OWN-VALLEY,6055,Napa,CA,Yes,2016,teaching_sample
+S0026,Harvest Foods - Napa 4,HAR,OWN-HARVEST,6055,Napa,CA,Yes,2005,teaching_sample
+S0027,Sunset Mart - Napa 5,SUN,OWN-SUNSET,6055,Napa,CA,Yes,2020,teaching_sample
+S0028,CornerFresh - Napa 6,COR,OWN-CORNER,6055,Napa,CA,Yes,2011,teaching_sample
+S0029,Valley Basket - Placer 1,VAL,OWN-VALLEY,6061,Placer,CA,Yes,1998,teaching_sample
+S0030,GreenGrocer - Placer 2,GRO,OWN-VALLEY,6061,Placer,CA,Yes,2015,teaching_sample
+S0031,SaveMore - Placer 3,SAV,OWN-DAYLIGHT,6061,Placer,CA,No,2012,teaching_sample
+S0032,Daylight Discount - Placer 4,DIS,OWN-DAYLIGHT,6061,Placer,CA,Yes,2002,teaching_sample
+S0033,Sunset Mart - Placer 5,SUN,OWN-SUNSET,6061,Placer,CA,Yes,2013,teaching_sample
+S0034,Harvest Foods - Sutter 1,HAR,OWN-HARVEST,6101,Sutter,CA,Yes,2020,teaching_sample
+S0035,Harvest Foods - Sutter 2,HAR,OWN-HARVEST,6101,Sutter,CA,Yes,2001,teaching_sample
+S0036,Neighborhood Pantry - Sutter 3,LOC,IND-S0036,6101,Sutter,CA,Yes,2004,teaching_sample
+S0037,CornerFresh - Sutter 4,COR,OWN-CORNER,6101,Sutter,CA,Yes,1998,teaching_sample
+S0038,Daylight Discount - Sutter 5,DIS,OWN-DAYLIGHT,6101,Sutter,CA,Yes,2019,teaching_sample
+S0039,Bulk Basket - Sutter 6,BOX,OWN-BULK,6101,Sutter,CA,No,2008,teaching_sample
+S0040,Daylight Discount - Yuba 1,DIS,OWN-DAYLIGHT,6115,Yuba,CA,Yes,2002,teaching_sample
+S0041,SaveMore - Yuba 2,SAV,OWN-DAYLIGHT,6115,Yuba,CA,Yes,2012,teaching_sample
+S0042,Daylight Discount - Yuba 3,DIS,OWN-DAYLIGHT,6115,Yuba,CA,Yes,2008,teaching_sample
+S0043,Express Stop - Yuba 4,EXC,OWN-ROADSIDE,6115,Yuba,CA,Yes,1999,teaching_sample
+S0044,Neighborhood Pantry - Yuba 5,LOC,IND-S0044,6115,Yuba,CA,Yes,2004,teaching_sample
+S0045,Harvest Foods - Yuba 6,HAR,OWN-HARVEST,6115,Yuba,CA,Yes,2017,teaching_sample
+S0046,Neighborhood Pantry - Colusa 1,LOC,IND-S0046,6011,Colusa,CA,Yes,2001,teaching_sample
+S0047,Neighborhood Pantry - Colusa 2,LOC,IND-S0047,6011,Colusa,CA,No,2019,teaching_sample
+S0048,Town Market - Colusa 3,TWN,IND-S0048,6011,Colusa,CA,Yes,2003,teaching_sample
+S0049,Harvest Foods - Colusa 4,HAR,OWN-HARVEST,6011,Colusa,CA,Yes,2015,teaching_sample
+S0050,Valley Basket - Lake 1,VAL,OWN-VALLEY,6033,Lake,CA,Yes,2003,teaching_sample
+S0051,Daylight Discount - Lake 2,DIS,OWN-DAYLIGHT,6033,Lake,CA,No,2011,teaching_sample
+S0052,Daylight Discount - Lake 3,DIS,OWN-DAYLIGHT,6033,Lake,CA,Yes,2017,teaching_sample
+S0053,CornerFresh - Lake 4,COR,OWN-CORNER,6033,Lake,CA,No,2016,teaching_sample
+S0054,Farm Table Foods - Sonoma 1,FAR,OWN-FARM,6097,Sonoma,CA,No,2019,teaching_sample
+S0055,GreenGrocer - Sonoma 2,GRO,OWN-VALLEY,6097,Sonoma,CA,Yes,2000,teaching_sample
+S0056,Harvest Foods - Sonoma 3,HAR,OWN-HARVEST,6097,Sonoma,CA,Yes,2014,teaching_sample
+S0057,Town Market - Sonoma 4,TWN,IND-S0057,6097,Sonoma,CA,Yes,2012,teaching_sample
+S0058,Sunset Mart - Sonoma 5,SUN,OWN-SUNSET,6097,Sonoma,CA,Yes,1999,teaching_sample
+S0059,Bulk Basket - Sonoma 6,BOX,OWN-BULK,6097,Sonoma,CA,Yes,1998,teaching_sample
+S0060,Valley Basket - Contra Costa 1,VAL,OWN-VALLEY,6013,Contra Costa,CA,Yes,2005,teaching_sample
+S0061,GreenGrocer - Contra Costa 2,GRO,OWN-VALLEY,6013,Contra Costa,CA,Yes,2004,teaching_sample
+S0062,Valley Basket - Contra Costa 3,VAL,OWN-VALLEY,6013,Contra Costa,CA,Yes,2009,teaching_sample
+S0063,SaveMore - Contra Costa 4,SAV,OWN-DAYLIGHT,6013,Contra Costa,CA,Yes,2021,teaching_sample
+S0064,Daylight Discount - Contra Costa 5,DIS,OWN-DAYLIGHT,6013,Contra Costa,CA,No,2020,teaching_sample
+S0065,Farm Table Foods - Contra Costa 6,FAR,OWN-FARM,6013,Contra Costa,CA,Yes,2015,teaching_sample
+S0066,CornerFresh - Contra Costa 7,COR,OWN-CORNER,6013,Contra Costa,CA,Yes,2019,teaching_sample
+S0067,GreenGrocer - Alameda 1,GRO,OWN-VALLEY,6001,Alameda,CA,Yes,2001,teaching_sample
+S0068,Harvest Foods - Alameda 2,HAR,OWN-HARVEST,6001,Alameda,CA,No,2014,teaching_sample
+S0069,CornerFresh - Alameda 3,COR,OWN-CORNER,6001,Alameda,CA,Yes,2014,teaching_sample
+S0070,CornerFresh - Alameda 4,COR,OWN-CORNER,6001,Alameda,CA,Yes,2006,teaching_sample
+S0071,Neighborhood Pantry - Alameda 5,LOC,IND-S0071,6001,Alameda,CA,Yes,2020,teaching_sample
+S0072,Express Stop - Alameda 6,EXC,OWN-ROADSIDE,6001,Alameda,CA,Yes,2006,teaching_sample
+S0073,Sunset Mart - Alameda 7,SUN,OWN-SUNSET,6001,Alameda,CA,Yes,1999,teaching_sample
+S0074,Daylight Discount - Alameda 8,DIS,OWN-DAYLIGHT,6001,Alameda,CA,Yes,2003,teaching_sample
+S0075,Harvest Foods - Alameda 9,HAR,OWN-HARVEST,6001,Alameda,CA,Yes,2015,teaching_sample
+S0076,Farm Table Foods - Marin 1,FAR,OWN-FARM,6041,Marin,CA,Yes,2001,teaching_sample
+S0077,Farm Table Foods - Marin 2,FAR,OWN-FARM,6041,Marin,CA,No,2018,teaching_sample
+S0078,Town Market - Marin 3,TWN,IND-S0078,6041,Marin,CA,Yes,2011,teaching_sample
+S0079,GreenGrocer - Marin 4,GRO,OWN-VALLEY,6041,Marin,CA,Yes,2014,teaching_sample
+S0080,Harvest Foods - Marin 5,HAR,OWN-HARVEST,6041,Marin,CA,Yes,2000,teaching_sample
+S0081,Sunset Mart - Marin 6,SUN,OWN-SUNSET,6041,Marin,CA,Yes,2000,teaching_sample
+S0082,Daylight Discount - San Joaquin 1,DIS,OWN-DAYLIGHT,6077,San Joaquin,CA,Yes,2018,teaching_sample
+S0083,SaveMore - San Joaquin 2,SAV,OWN-DAYLIGHT,6077,San Joaquin,CA,No,2009,teaching_sample
+S0084,Bulk Basket - San Joaquin 3,BOX,OWN-BULK,6077,San Joaquin,CA,Yes,2009,teaching_sample
+S0085,Harvest Foods - San Joaquin 4,HAR,OWN-HARVEST,6077,San Joaquin,CA,Yes,2000,teaching_sample
+S0086,Express Stop - San Joaquin 5,EXC,OWN-ROADSIDE,6077,San Joaquin,CA,Yes,2004,teaching_sample
+S0087,Express Stop - San Joaquin 6,EXC,OWN-ROADSIDE,6077,San Joaquin,CA,No,2001,teaching_sample
+S0088,Daylight Discount - Stanislaus 1,DIS,OWN-DAYLIGHT,6099,Stanislaus,CA,Yes,2018,teaching_sample
+S0089,SaveMore - Stanislaus 2,SAV,OWN-DAYLIGHT,6099,Stanislaus,CA,Yes,2022,teaching_sample
+S0090,Neighborhood Pantry - Stanislaus 3,LOC,IND-S0090,6099,Stanislaus,CA,Yes,2015,teaching_sample
+S0091,Neighborhood Pantry - Stanislaus 4,LOC,IND-S0091,6099,Stanislaus,CA,No,2019,teaching_sample
+S0092,Sunset Mart - Stanislaus 5,SUN,OWN-SUNSET,6099,Stanislaus,CA,Yes,1999,teaching_sample
+S0093,CornerFresh - Stanislaus 6,COR,OWN-CORNER,6099,Stanislaus,CA,Yes,2011,teaching_sample
+S0094,Valley Basket - El Dorado 1,VAL,OWN-VALLEY,6017,El Dorado,CA,Yes,2006,teaching_sample
+S0095,GreenGrocer - El Dorado 2,GRO,OWN-VALLEY,6017,El Dorado,CA,Yes,2014,teaching_sample
+S0096,Harvest Foods - El Dorado 3,HAR,OWN-HARVEST,6017,El Dorado,CA,Yes,2008,teaching_sample
+S0097,Town Market - El Dorado 4,TWN,IND-S0097,6017,El Dorado,CA,Yes,2000,teaching_sample
+S0098,Farm Table Foods - El Dorado 5,FAR,OWN-FARM,6017,El Dorado,CA,Yes,2008,teaching_sample
+S0099,Farm Table Foods - El Dorado 6,FAR,OWN-FARM,6017,El Dorado,CA,No,2019,teaching_sample
+S0100,Neighborhood Pantry - Nevada 1,LOC,IND-S0100,6057,Nevada,CA,Yes,2008,teaching_sample
+S0101,Town Market - Nevada 2,TWN,IND-S0101,6057,Nevada,CA,Yes,1999,teaching_sample
+S0102,Farm Table Foods - Nevada 3,FAR,OWN-FARM,6057,Nevada,CA,Yes,2020,teaching_sample
+S0103,Sunset Mart - Nevada 4,SUN,OWN-SUNSET,6057,Nevada,CA,No,2007,teaching_sample
+S0104,Valley Basket - Butte 1,VAL,OWN-VALLEY,6007,Butte,CA,No,2015,teaching_sample
+S0105,Harvest Foods - Butte 2,HAR,OWN-HARVEST,6007,Butte,CA,Yes,2003,teaching_sample
+S0106,Harvest Foods - Butte 3,HAR,OWN-HARVEST,6007,Butte,CA,Yes,2015,teaching_sample
+S0107,CornerFresh - Butte 4,COR,OWN-CORNER,6007,Butte,CA,No,2022,teaching_sample
+S0108,Daylight Discount - Butte 5,DIS,OWN-DAYLIGHT,6007,Butte,CA,Yes,2018,teaching_sample
+S0109,Farm Table Foods - Butte 6,FAR,OWN-FARM,6007,Butte,CA,Yes,2021,teaching_sample
+S0110,Neighborhood Pantry - Glenn 1,LOC,IND-S0110,6021,Glenn,CA,Yes,2007,teaching_sample
+S0111,Town Market - Glenn 2,TWN,IND-S0111,6021,Glenn,CA,Yes,2003,teaching_sample
+S0112,SaveMore - Glenn 3,SAV,OWN-DAYLIGHT,6021,Glenn,CA,Yes,2002,teaching_sample
+S0113,CornerFresh - Glenn 4,COR,OWN-CORNER,6021,Glenn,CA,Yes,2016,teaching_sample
+S0114,Town Market - Mendocino 1,TWN,IND-S0114,6045,Mendocino,CA,No,2010,teaching_sample
+S0115,Farm Table Foods - Mendocino 2,FAR,OWN-FARM,6045,Mendocino,CA,Yes,2009,teaching_sample
+S0116,Neighborhood Pantry - Mendocino 3,LOC,IND-S0116,6045,Mendocino,CA,Yes,2020,teaching_sample
+S0117,Neighborhood Pantry - Mendocino 4,LOC,IND-S0117,6045,Mendocino,CA,Yes,2006,teaching_sample
+S0118,Valley Basket - San Francisco 1,VAL,OWN-VALLEY,6075,San Francisco,CA,Yes,2004,teaching_sample
+S0119,GreenGrocer - San Francisco 2,GRO,OWN-VALLEY,6075,San Francisco,CA,Yes,2020,teaching_sample
+S0120,Farm Table Foods - San Francisco 3,FAR,OWN-FARM,6075,San Francisco,CA,Yes,2021,teaching_sample
+S0121,Express Stop - San Francisco 4,EXC,OWN-ROADSIDE,6075,San Francisco,CA,Yes,2002,teaching_sample
+S0122,CornerFresh - San Francisco 5,COR,OWN-CORNER,6075,San Francisco,CA,Yes,2012,teaching_sample
+S0123,CornerFresh - San Francisco 6,COR,OWN-CORNER,6075,San Francisco,CA,No,1998,teaching_sample
+S0124,Bulk Basket - San Francisco 7,BOX,OWN-BULK,6075,San Francisco,CA,Yes,2003,teaching_sample
+S0125,Valley Basket - Santa Clara 1,VAL,OWN-VALLEY,6085,Santa Clara,CA,Yes,2010,teaching_sample
+S0126,GreenGrocer - Santa Clara 2,GRO,OWN-VALLEY,6085,Santa Clara,CA,Yes,1998,teaching_sample
+S0127,Sunset Mart - Santa Clara 3,SUN,OWN-SUNSET,6085,Santa Clara,CA,Yes,1999,teaching_sample
+S0128,Harvest Foods - Santa Clara 4,HAR,OWN-HARVEST,6085,Santa Clara,CA,Yes,2001,teaching_sample
+S0129,SaveMore - Santa Clara 5,SAV,OWN-DAYLIGHT,6085,Santa Clara,CA,Yes,2016,teaching_sample
+S0130,Bulk Basket - Santa Clara 6,BOX,OWN-BULK,6085,Santa Clara,CA,No,2022,teaching_sample
+S0131,Express Stop - Santa Clara 7,EXC,OWN-ROADSIDE,6085,Santa Clara,CA,Yes,2005,teaching_sample
+S0132,CornerFresh - Santa Clara 8,COR,OWN-CORNER,6085,Santa Clara,CA,No,2005,teaching_sample
+S0133,GreenGrocer - Santa Clara 9,GRO,OWN-VALLEY,6085,Santa Clara,CA,Yes,2004,teaching_sample
+S0134,Farm Table Foods - San Mateo 1,FAR,OWN-FARM,6081,San Mateo,CA,Yes,1999,teaching_sample
+S0135,Town Market - San Mateo 2,TWN,IND-S0135,6081,San Mateo,CA,Yes,2004,teaching_sample
+S0136,CornerFresh - San Mateo 3,COR,OWN-CORNER,6081,San Mateo,CA,Yes,2018,teaching_sample
+S0137,GreenGrocer - San Mateo 4,GRO,OWN-VALLEY,6081,San Mateo,CA,No,2017,teaching_sample
+S0138,GreenGrocer - San Mateo 5,GRO,OWN-VALLEY,6081,San Mateo,CA,Yes,2022,teaching_sample
+S0139,Harvest Foods - San Mateo 6,HAR,OWN-HARVEST,6081,San Mateo,CA,Yes,2011,teaching_sample
+S0140,Valley Basket - San Benito 1,VAL,OWN-VALLEY,6069,San Benito,CA,Yes,2014,teaching_sample
+S0141,Neighborhood Pantry - San Benito 2,LOC,IND-S0141,6069,San Benito,CA,No,2005,teaching_sample
+S0142,Town Market - San Benito 3,TWN,IND-S0142,6069,San Benito,CA,Yes,2000,teaching_sample
+S0143,SaveMore - San Benito 4,SAV,OWN-DAYLIGHT,6069,San Benito,CA,No,2022,teaching_sample
+S0144,Harvest Foods - San Benito 5,HAR,OWN-HARVEST,6069,San Benito,CA,Yes,1999,teaching_sample
+S0145,Sunset Mart - San Benito 6,SUN,OWN-SUNSET,6069,San Benito,CA,Yes,2005,teaching_sample

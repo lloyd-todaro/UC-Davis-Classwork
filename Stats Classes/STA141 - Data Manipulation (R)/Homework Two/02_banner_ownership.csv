@@ -1,0 +1,13 @@
+banner_id,banner_name,parent_group,store_type
+VAL,Valley Basket,Valley Retail Holdings,Supermarket
+GRO,GreenGrocer,Valley Retail Holdings,Supermarket
+HAR,Harvest Foods,Harvest Collective,Supermarket
+COR,CornerFresh,CornerFresh Group,Convenience
+DIS,Daylight Discount,Daylight Value Group,Discount
+SAV,SaveMore,Daylight Value Group,Discount
+LOC,Neighborhood Pantry,Independent operators,Small grocery
+TWN,Town Market,Independent operators,Small grocery
+BOX,Bulk Basket,Bulk Basket Holdings,Warehouse
+EXC,Express Stop,Roadside Retail LLC,Convenience
+FAR,Farm Table Foods,Farm Table Group,Specialty
+SUN,Sunset Mart,Sunset Retail LLC,Supermarket
