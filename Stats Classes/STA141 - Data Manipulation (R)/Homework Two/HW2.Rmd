@@ -263,15 +263,15 @@ report_table(
 
 Now the units, geographic levels, and references period for each are:
 
-- Stores: One physical store per row, identified by `store_id`. Each store has a county location. The roster is undated and the opening year is a store characteristic, not the roster's observation date.
-- Banners: One banner per row, identified by `banner_id`. This is a business level table with no geographic unit or reference date. A banner may be used by multiple stores.
-- Products: One generic comparison product per row, identified by `product_id`. This table is not geographic and has no reference date.
-- Prices: One store-product-date observation per row. The substantive key is `store_id`, `product_id`, and `observation_date`. `observation_id` is also a candidate row key. Geography is obtained through the store. The two dates are April 15, 2024 and April 15, 2025.
-- Basket items: One required product within a basket per row, identified jointly by `basket_id` and `product_id`. These are fixed scenario definitions with no geographic level or date.
-- County context: One county per row, identified by `county_fips`. The demographic and socioeconomic measures represent a simulated 2024 profile.
-- Food environment: One county per row, identified by `county_fips_raw`, which is padded to make `county_fips` in the working table. Its indicators and population denominator refer to 2022.
-- Tract access: One constructed tract per row, identified by `tract_id`. The first five characters identify its county. Its population and access measures refer to 2024.
-- Travel: One recorded tract-store alternative per row, identified jointly by `tract_id` and `store_id`. Its geographic unit is a link between a tract and a store, potentially across county boundaries. Travel values are hypothetical scenario inputs without an explicit observation date.
+-   Stores: One physical store per row, identified by `store_id`. Each store has a county location. The roster is undated and the opening year is a store characteristic, not the roster's observation date.
+-   Banners: One banner per row, identified by `banner_id`. This is a business level table with no geographic unit or reference date. A banner may be used by multiple stores.
+-   Products: One generic comparison product per row, identified by `product_id`. This table is not geographic and has no reference date.
+-   Prices: One store-product-date observation per row. The substantive key is `store_id`, `product_id`, and `observation_date`. `observation_id` is also a candidate row key. Geography is obtained through the store. The two dates are April 15, 2024 and April 15, 2025.
+-   Basket items: One required product within a basket per row, identified jointly by `basket_id` and `product_id`. These are fixed scenario definitions with no geographic level or date.
+-   County context: One county per row, identified by `county_fips`. The demographic and socioeconomic measures represent a simulated 2024 profile.
+-   Food environment: One county per row, identified by `county_fips_raw`, which is padded to make `county_fips` in the working table. Its indicators and population denominator refer to 2022.
+-   Tract access: One constructed tract per row, identified by `tract_id`. The first five characters identify its county. Its population and access measures refer to 2024.
+-   Travel: One recorded tract-store alternative per row, identified jointly by `tract_id` and `store_id`. Its geographic unit is a link between a tract and a store, potentially across county boundaries. Travel values are hypothetical scenario inputs without an explicit observation date.
 
 ## Key cardinality check
 
@@ -764,8 +764,7 @@ report_table(
 
 The stores share 28 products which is 73.7% of Valley Basket's 38 products and 93.3% of Daylight Discount's 30. Their union contains 40 products, giving a shared union overlap of 70%
 
-Products recorded only at Valley basket are `r paste(setdiff(a_prices$product_id, b_prices$product_id), collapse = ", ")`.
-Those recorded only at Daylight Discount are `r paste(setdiff(b_prices$product_id, a_prices$product_id), collapse = ", ")`. 
+Products recorded only at Valley basket are `r paste(setdiff(a_prices$product_id, b_prices$product_id), collapse = ", ")`. Those recorded only at Daylight Discount are `r paste(setdiff(b_prices$product_id, a_prices$product_id), collapse = ", ")`.
 
 ## Matched price differences
 
@@ -809,11 +808,9 @@ rice_comparison <- matched |>
 
 Across the 28 shared products, Valley Basket's unit prices are 16.01% higher on average, with a median difference of 11.25% and an IQR of 25.70 percentage points. Valley Basket is cheaper for 7 of 28 products (25%), while Daylight Discount is cheaper for 21 (75%) with no ties.
 
-For white rice, the unit prices are
-\$`r sprintf("%.6f", rice_comparison$U_a)`/oz at Valley Basket and \$`r sprintf("%.6f", rice_comparison$U_b)`/oz at Daylight Discount.
+For white rice, the unit prices are \$`r sprintf("%.6f", rice_comparison$U_a)`/oz at Valley Basket and \$`r sprintf("%.6f", rice_comparison$U_b)`/oz at Daylight Discount.
 
 So, $\Delta_j$ is `r sprintf("%.6f", rice_comparison$Delta)` dollars per ounce (Valley Basket cheaper for this product). Dollar differences across incompatible base units are not averaged.
-
 
 ```{r q3-plot, fig.height = 6, fig.width = 6.5}
 matched |>
@@ -1031,10 +1028,10 @@ For some hypothetical sample, store $a$ could be \$1 cheaper per base unit for o
 
 Different summaries answer different shopping questions. Using the April 15, 2025 comparison from question 3, store $a$ is Valley Basket (`S0001`) and baseline store $b$ is Daylight Discount (`S0004`).
 
-- Frequency: Daylight Discount is cheaper for 21 of 28 shared products (75%). This counts products equally no matter their quantities purchased or the size of the savings.
-- Location: The mean and median of $R_j$ are 16.01% and 11.25%. This describes relative price differences across matched products.
-- Dispersion: The IQR of $R_j$ is 25.70 percentage points. This shows that the differences vary across products a good amount.
-- Fixed basket: Valley Basket's complete essentials basket costs \$56.19. Daylight Discount has only 8 of the 12 required prices, so its basket cost is `NA` and cannot be compared.
+-   Frequency: Daylight Discount is cheaper for 21 of 28 shared products (75%). This counts products equally no matter their quantities purchased or the size of the savings.
+-   Location: The mean and median of $R_j$ are 16.01% and 11.25%. This describes relative price differences across matched products.
+-   Dispersion: The IQR of $R_j$ is 25.70 percentage points. This shows that the differences vary across products a good amount.
+-   Fixed basket: Valley Basket's complete essentials basket costs \$56.19. Daylight Discount has only 8 of the 12 required prices, so its basket cost is `NA` and cannot be compared.
 
 ## Differences by product category
 
@@ -1091,12 +1088,11 @@ The essentials basket panel in question 4 shows these three eligible store costs
 
 ## Can the majority-product comparison disagree with a basket?
 
-The chosen pair cannot establish an actual reversal because Daylight Discount's essentials basket is incomplete. 
+The chosen pair cannot establish an actual reversal because Daylight Discount's essentials basket is incomplete.
 
 For some hypothetical sample, say three products each have a required quantity of one base unit. Store A charges \$1, \$1, and \$10, while store B charges \$2, \$2, and \$5. Store A is cheaper for two of three products, but its complete basket costs \$12 versus \$9 at store B.
 
-For a shopper purchasing the specified quantities, $B_{sbt}$ is more directly relevant than the fraction of products that are cheaper. A single average hides product specific differences, dispersion, coverage, and the quantities a shopper intends to buy. 
-
+For a shopper purchasing the specified quantities, $B_{sbt}$ is more directly relevant than the fraction of products that are cheaper. A single average hides product specific differences, dispersion, coverage, and the quantities a shopper intends to buy.
 
 # 6. How did prices change between April 2024 and April 2025?
 
@@ -1201,7 +1197,6 @@ The data was reshaped from long to wide, with separate 2024 and 2025 columns for
 
 ## Distribution of matched changes and promotions
 
-
 ```{r q6-summary}
 regular_changes <- matched_changes |>
   filter(
@@ -1262,7 +1257,7 @@ report_table(
 
 Across all matched pairs, the mean increase is 5.64% and the median is 4.9%. The standard deviation is 11.43 percentage points, showing a notable amount of variation. Prices increase for 2,562 pairs, decrease for 1,052, and remain unchanged for 24.
 
-Excluding promotions at either date leaves 3,002 pairs. The mean increase becomes 5.46%, the median 4.91% and the standard deviation 8.38 percentage points. The overall increase is still apparent, but variability is lower. 
+Excluding promotions at either date leaves 3,002 pairs. The mean increase becomes 5.46%, the median 4.91% and the standard deviation 8.38 percentage points. The overall increase is still apparent, but variability is lower.
 
 ## Category comparisons
 
@@ -1574,7 +1569,6 @@ report_table(
 
 Rank 1 denotes the highest value. Ties receive the same minimum rank, so the next ranks my skip positions. Alameda, Sacramento, and Santa Clara tie for the largest count with 9 stores each. Lake ranks first by density despite only have 4 stores ($10{,}000(4/10{,}743)=3.72$ stores per 10,000 residents).
 
-
 ```{r q8-rank-changes}
 largest_changes <- county_stores |>
   arrange(desc(abs(rank_change)), county_name) |>
@@ -1723,7 +1717,7 @@ report_table(
 )
 ```
 
-All 24 counties match. Count differences are measured in outlets, rate differences are measured in outlets per 10,000 residents. Positive values mean the alternative measure is larger. Percentage differences divide each difference by the corresponding study measure. 
+All 24 counties match. Count differences are measured in outlets, rate differences are measured in outlets per 10,000 residents. Positive values mean the alternative measure is larger. Percentage differences divide each difference by the corresponding study measure.
 
 The supplied 2022 rates agree with rates calculated from their 2022 counts and populations within rounding tolerance. This checks internal consistency without assuming agreement with the roster.
 
@@ -2000,17 +1994,1157 @@ The smallest tract has the highest low-access percentage. It receives 25% of the
 
 So, $L_c^{\mathrm{weighted}}$ answers the question about what share of county residents have low access. The unweighted mean answers the question of what is the average low-access share across tracts. These are different questions even when the county totals are the same.
 
-
 # 11. How are income, poverty, and access to a vehicle related to grocery accessibility?
+
+For some county, $c$, let $H_c$ be the households, $V_c$ be the households with no vehicle, $I_c$ be the median household income, and $P_c$ be the poverty rate. Let $A_k$ and $N_k$ be the low-access residents and population of tract $k$, respectively. The measures then are:
+
+$$
+\mathrm{NoVehicle}_c = 100\frac{V_c}{H_c}\%,
+\qquad
+L_c = 100\frac{\sum_{k \in c}A_k}{\sum_{k \in c}N_k}\%
+$$
+
+Income $I_c$ and poverty rate $P_c$ are used as reparted in the county profile. For each predictor $X \in \{I_c, P_c, \mathrm{NoVehicle}_c\}$, the association with accessability is summarized by the correlation across the 24 counties,
+
+$$
+r_X = \operatorname{cor}\left(X_c,\;L_c\right).
+$$
+
+```{r q11-aggregate}
+county_q11 <- county_context |>
+  transmute(
+    county_fips, county_name,
+    Income = median_household_income_2024_usd_sim,
+    Poverty = poverty_rate_2024_pct_sim,
+    No_Vehicle = 100 * households_no_vehicle_2024_sim / households_2024_sim,
+  ) |>
+  left_join(
+    county_access |> select(county_fips, Weighted, Low_income_low_access_pct),
+    by = "county_fips",
+    relationship = "one-to-one"
+  )
+
+stopifnot(
+  nrow(county_q11) == 24,
+  !anyNA(county_q11),
+  all(county_q11$No_Vehicle >= 0 & county_q11$No_Vehicle <= 100),
+  all(county_q11$Poverty >= 0 & county_q11$Poverty <= 100),
+  all(county_q11$Income >0)
+)
+```
+
+```{r q11-summary}
+q11_summary <- county_q11 |>
+  select(Income, Poverty, No_Vehicle, Weighted) |>
+  pivot_longer(everything(), names_to = "Measure", values_to = "Value") |>
+  group_by(Measure) |>
+  summarise(
+    Mean = mean(Value), Median = median(Value), SD = sd(Value),
+    Q1 = quantile(Value, 0.25), Q3 = quantile(Value, 0.75),
+    Min = min(Value), Max = max(Value), .groups = "drop"
+  ) |>
+  mutate(Measure = recode(Measure, 
+                          Income = "Meadian Income (USD)",
+                          Poverty = "Poverty Rate (%)",
+                          No_Vehicle = "No-vehicle households (%)",
+                          Weighted = "Low-access residents (%)"
+                          ))
+report_table(q11_summary, digits = 2, caption = "County-level summarries across 24 counties.")
+
+```
+
+Across 24 counties we see a mean substantially higher than the median for median household incomes, indicating a right skew. This dataset also appears to have high variance. No missing values were dropped or imputed. 
+
+## Correlation Values Across Different Predictors
+
+```{r q11-cor}
+predictors <- c("Income", "Poverty", "No_Vehicle")
+
+cor_table <- map_dfr(predictors, function(x) {
+  ct <- cor.test(county_q11[[x]], county_q11$Weighted)
+  tibble(
+    Predictor = x,
+    Pearson = unname(ct$estimate),
+    CI_low = ct$conf.int[1],
+    CI_high = ct$conf.int[2],
+    p_value = ct$p.value,
+    Spearman = cor(county_q11[[x]], county_q11$Weighted, method = "spearman")
+  )
+}) |>
+  mutate(Predictor = recode(Predictor,
+    Income = "Median income", Poverty = "Poverty rate",
+    No_Vehicle = "No-vehicle households"))
+
+report_table(cor_table, digits = 3,
+  col.names = c("Predictor", "Pearson r", "95% CI low", "95% CI high",
+                "p-value", "Spearman rho"),
+  caption = "Association with county low-access share (n = 24).")
+```
+
+Aggregated across all counties, all Median income, Povery rate, and No-vehicle households all have meaningful Pearson and Spearman corralations with extremely low P-values. At a significance level of $\alpha=0.01$, we have a statistically significant correlation for all of these predictor variables. Additionally Spearman and Pearson values are very similar, indicating little influence of outliers.
+
+## Scatterplots
+
+```{r q-11 plots}
+county_q11 |>
+  pivot_longer(c(Income, Poverty, No_Vehicle),
+               names_to = "Predictor", values_to = "X") |>
+  mutate(Predictor = recode(Predictor,
+    Income = "Median income (USD)",
+    Poverty = "Poverty rate (%)",
+    No_Vehicle = "No-vehicle households (%)")) |>
+  ggplot(aes(x = X, y = Weighted)) +
+  geom_point(alpha = 0.8, color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "gray30", linewidth = 0.6) +
+  facet_wrap(vars(Predictor), scales = "free_x") +
+  labs(
+    title = "County low-access share versus income, poverty, and vehicle access",
+    x = NULL, y = "Low-access residents (%)",
+    caption = "Simulated data. n = 24 counties; lines are least-squares fits."
+  )
+```
+
+The assumption of a linear relationship holds through raw observation and rigorous statistical testing, as we view a roughly linear plot for all 3 predictor variables.
+
+## Predictors Overlap With Each Other
+
+```{r q-11 overlap}
+predictor_cor <- cor(county_q11[predictors]) |>
+  as.data.frame() |>
+  rownames_to_column("Variable")
+
+report_table(predictor_cor, digits = 2,
+  caption = "Pearson correlations among county predictors.")
+```
+
+As we see in the table, all predictor variables have meaningful correlation with one another. Naturally a lower median income is correlated with a higher poverty rate. Additionally, a higher poverty rate seems to significantly contribute to a higher likelihood of homes not having a vehicle. 
+
+We can conclude that Income, Poverty rate, and No vehicle all play a part in predicting access to groceries and all play a part in predicting each other.
 
 # 12. Do more shopping options guarantee better food access?
 
+## Coverage of Travel Data
+
+```{r q12-tract}
+county_q12 <- county_comparison |>
+  select(county_fips, county_name, urban_rural_sim, population_2024_sim,
+         S_c, D_c, density_2022) |>
+  left_join(
+    county_access |> select(county_fips, Weighted, Low_income_low_access_pct),
+    by = "county_fips", relationship = "one-to-one"
+  ) |>
+  left_join(
+    county_q11 |> select(county_fips, Poverty, No_Vehicle),
+    by = "county_fips", relationship = "one-to-one"
+  )
+
+stopifnot(nrow(county_q12) == 24, !anyNA(county_q12))
+
+tract_options <- travel |>
+  group_by(tract_id) |>
+  summarise(
+    Alternatives = n(),
+    Nearest_miles = min(driving_distance_oneway_miles_sim),
+    # Define bus availability from the data itself: time/fare are NA without service
+    Bus_alternatives = sum(!is.na(bus_roundtrip_minutes_sim)),
+    Best_bus_minutes = if (all(is.na(bus_roundtrip_minutes_sim))) {
+      NA_real_
+    } else {
+      min(bus_roundtrip_minutes_sim, na.rm = TRUE)
+    },
+    .groups = "drop"
+  )
+
+tract_q12 <- tract_access |>
+  left_join(tract_options, by = "tract_id", relationship = "one-to-one") |>
+  mutate(
+    Low_access_pct = 100 * low_access_residents_2024_sim /
+      tract_population_2024_sim,
+    Has_travel_data = !is.na(Alternatives)
+  )
+
+# Orphan check: travel rows whose tract is not in the tract file
+stopifnot(all(travel$tract_id %in% tract_access$tract_id))
+
+missing_audit <- tibble(
+  Measure = c(
+    "Tracts in access file",
+    "Tracts with at least one travel alternative",
+    "Tracts with no travel alternative",
+    "Residents in tracts with no travel alternative (%)",
+    "Tracts with no bus alternative (bus measures NA)"
+  ),
+  Value = c(
+    nrow(tract_q12),
+    sum(tract_q12$Has_travel_data),
+    sum(!tract_q12$Has_travel_data),
+    100 * sum(tract_q12$tract_population_2024_sim[!tract_q12$Has_travel_data]) /
+      sum(tract_q12$tract_population_2024_sim),
+    sum(tract_q12$Has_travel_data & tract_q12$Bus_alternatives == 0)
+  )
+)
+
+report_table(
+  missing_audit, digits = 1,
+  caption = "Coverage of tract travel data (missing means not recorded, not zero)."
+)
+```
+
+We will analyze the question of "Do more shopping options guarantee better food access?" with tracts aggregated into county-level data. $S_c$ being study store count, and $D_c$ being number of stores per $10{,}000$ people. These will be used as predictor variables, with the outcome being 'Weighted', defined as population-weighted low-access $\%$ from the county-access data set. 
+
+## County Level Aggregation
+
+```{r q12-aggregate, show = FALSE}
+
+
+county_options <- tract_q12 |>
+  group_by(county_fips) |>
+  summarise(
+    Tracts = n(),
+    Tracts_with_data = sum(Has_travel_data),
+    Pop_with_data_pct = 100 *
+      sum(tract_population_2024_sim[Has_travel_data]) /
+      sum(tract_population_2024_sim),
+    # na.rm = TRUE drops only tracts with no travel rows, and coverage is reported above
+    Mean_alternatives = if (any(Has_travel_data)) {
+      mean(Alternatives, na.rm = TRUE)
+    } else NA_real_,
+    Weighted_nearest_miles = if (any(Has_travel_data)) {
+      weighted.mean(Nearest_miles, tract_population_2024_sim, na.rm = TRUE)
+    } else NA_real_,
+    .groups = "drop"
+  )
+
+# Counties with no usable travel data stay NA (not 0) and are excluded from the models
+county_q12 <- county_q12 |>
+  left_join(county_options, by = "county_fips", relationship = "one-to-one")
+
+excluded_counties <- county_q12 |>
+  filter(is.na(Mean_alternatives)) |>
+  pull(county_name)
+
+excluded_counties
+```
+
+`r if (length(excluded_counties) == 0) "No counties were excluded." else paste(excluded_counties, collapse = ", ")`
+
+This aggregation combined counties by tract. All missing data was kept as NA and never imputed. NAs for bus times is a meaningful piece of data, implying no alternative has bus service, there were 4 tracts with this measure. Still after aggregation, there was zero counties with no travel alternative.
+
+## There is no gaurentee of better food access when a county has better shopping options
+
+```{r q12 plot}
+alts_per_county <- travel |>
+  count(tract_id, name = "Alternatives") |>
+  left_join(
+    tract_access |> select(tract_id, county_fips),
+    by = "tract_id", relationship = "one-to-one"
+  ) |>
+  group_by(county_fips) |>
+  summarise(Mean_alternatives = mean(Alternatives), .groups = "drop")
+
+plot_q12 <- county_access |>
+  select(county_fips, county_name, Weighted) |>
+  left_join(alts_per_county, by = "county_fips", relationship = "one-to-one")
+
+stopifnot(nrow(plot_q12) == 24, !anyNA(plot_q12))
+
+extremes <- plot_q12 |>
+  filter(Weighted == min(Weighted) | Weighted == max(Weighted))
+
+ggplot(plot_q12, aes(x = Mean_alternatives, y = Weighted)) +
+  geom_point(
+    position = position_jitter(width = 0.08, height = 0, seed = 141),
+    size = 2.3, color = "steelblue", alpha = 0.8
+  ) +
+  geom_text(
+    data = extremes, aes(label = county_name),
+    hjust = -0.2, size = 3
+  ) +
+  scale_x_continuous(limits = c(0, 10), breaks = 0:10) +
+  labs(
+    title = "Same number of recorded options, very different low-access shares",
+    subtitle = sprintf(
+      "Every county has %.0f recorded store alternatives per tract, but low-access shares range from %.1f%% to %.1f%%",
+      mean(plot_q12$Mean_alternatives), min(plot_q12$Weighted), max(plot_q12$Weighted)
+    ),
+    x = "Recorded store alternatives per tract (county mean)",
+    y = "Low-access residents (%)",
+    caption = "Simulated data. n = 24 counties; points are jittered horizontally for visibility."
+  )
+```
+
+Over all measured tracts, we see the average number of store options is 5, yet the county low-access shares range from `r min(plot_q12$Weighted)` to `r max(plot_q12$Weighted)`. We conclude that the number of store options in the recorded dataset cannot guarantee, or even meaningfully predict, the average access to groceries. 
+
+NOTE: This is likely a choice made in the simulated data, this constant count may be more revealing of the data set than of any pattern.
+
 # 13. Can transportation reverse the ranking of the cheapest grocery store?
+We start from the 670 recorded tract–store alternatives in the travel file, not from a county join. Each candidate store receives its complete April 15, 2025 `essentials_12` basket cost from Question 4, when one exists. For tract $k$, eligible store $s$, and mode $m$, the travel-adjusted cost is
+
+$$
+T_{ksm} = B_{s,\text{essentials},2025} + F_{ksm},
+$$
+
+where $F_{ksm}$ is the recorded round-trip car cost or bus fare. For each tract we find three minimizing stores:
+
+(a) the lowest basket-only cost among all eligible candidates;
+
+(b) the lowest basket + car round-trip cost;
+
+(c) the lowest basket + bus round-trip fare, among candidates with `bus_service_available_sim = "Yes"` and a complete basket.
+
+A candidate is eligible only if its store has all 12 essentials prices on that date. Missing bus fares on alternatives without service are ineligible, not free; a recorded zero fare with service is a valid free trip.
+
+```{r q13-eligible}
+# Complete essentials-basket costs from Question 4 (one row per store)
+ess_costs <- basket_costs_2025 |>
+  filter(basket_id == "essentials_12", coverage == 1, !is.na(basket_cost)) |>
+  select(store_id, basket_cost)
+
+stopifnot(!anyDuplicated(ess_costs$store_id))
+
+# Bus fields must be present exactly when service is available
+stopifnot(
+  all(travel$bus_service_available_sim %in% c("Yes", "No")),
+  all(!is.na(travel$bus_roundtrip_fare_usd_sim[travel$bus_service_available_sim == "Yes"])),
+  all(is.na(travel$bus_roundtrip_fare_usd_sim[travel$bus_service_available_sim == "No"])),
+  !anyNA(travel$car_roundtrip_cost_usd_sim)
+)
+
+# Recorded alternatives whose store has a complete essentials basket
+cand <- travel |>
+  inner_join(ess_costs, by = "store_id", relationship = "many-to-one") |>
+  mutate(
+    bus_ok    = bus_service_available_sim == "Yes",
+    car_cost  = car_roundtrip_cost_usd_sim,
+    bus_fare  = if_else(bus_ok, bus_roundtrip_fare_usd_sim, NA_real_),
+    car_total = basket_cost + car_cost,
+    bus_total = if_else(bus_ok, basket_cost + bus_fare, NA_real_)
+  ) |>
+  arrange(tract_id, store_id)   # fixes tie-breaking order below
+
+# The inner join can only drop rows (stores without a complete basket)
+stopifnot(
+  nrow(cand) == sum(travel$store_id %in% ess_costs$store_id),
+  !anyDuplicated(cand[c("tract_id", "store_id")])
+)
+
+eligibility <- tibble(
+  Measure = c(
+    "Recorded tract-store alternatives",
+    "Alternatives whose store has a complete essentials basket",
+    "  ...of which have bus service",
+    "  ...of which have bus service with a zero fare",
+    "Tracts in the access file",
+    "Tracts with at least one eligible candidate",
+    "Tracts with at least one bus-accessible eligible candidate"
+  ),
+  Value = c(
+    nrow(travel),
+    nrow(cand),
+    sum(cand$bus_ok),
+    sum(cand$bus_ok & cand$bus_fare == 0),
+    nrow(tract_access),
+    n_distinct(cand$tract_id),
+    n_distinct(cand$tract_id[cand$bus_ok])
+  )
+)
+
+report_table(
+  eligibility, digits = 0,
+  caption = "Eligibility for the essentials-basket travel scenarios, April 15, 2025."
+)
+```
+
+Of the `r nrow(travel)` recorded alternatives, `r nrow(cand)` lead to a store with a complete essentials basket. `r n_distinct(cand$tract_id)` of the `r nrow(tract_access)` tracts have at least one such candidate, and `r n_distinct(cand$tract_id[cand$bus_ok])` have at least one that is also reachable by bus. The remaining tracts are not evaluable for that scenario; they are not assigned a zero cost.
+
+## Minimizing stores for each tract
+
+```{r q13-best}
+# Choose the single cheapest candidate per tract on a given cost column.
+# Rows are sorted by store_id, so ties go to the lower store_id.
+pick_min <- function(data, cost) {
+  data |>
+    filter(!is.na({{ cost }})) |>
+    group_by(tract_id) |>
+    slice_min({{ cost }}, n = 1, with_ties = FALSE) |>
+    ungroup()
+}
+
+best_basket <- pick_min(cand, basket_cost) |>
+  select(tract_id,
+         store_basket = store_id, min_basket = basket_cost,
+         basket_store_bus_ok = bus_ok,
+         basket_store_car_total = car_total,
+         basket_store_bus_total = bus_total)
+
+best_car <- pick_min(cand, car_total) |>
+  select(tract_id, store_car = store_id, min_car_total = car_total,
+         car_cost_chosen = car_cost)
+
+best_bus <- pick_min(filter(cand, bus_ok), bus_total) |>
+  select(tract_id, store_bus = store_id, min_bus_total = bus_total,
+         bus_fare_chosen = bus_fare,
+         bus_minutes_chosen = bus_roundtrip_minutes_sim)
+
+nearest <- pick_min(cand, driving_distance_oneway_miles_sim) |>
+  select(tract_id, store_nearest = store_id)
+
+# Count tracts where the minimum is tied (with_ties = FALSE hides these)
+tie_counts <- c(
+  Basket = sum(count(filter(cand, basket_cost ==
+                 ave(basket_cost, tract_id, FUN = min)), tract_id)$n > 1),
+  Car = sum(count(filter(cand, car_total ==
+                 ave(car_total, tract_id, FUN = min)), tract_id)$n > 1)
+)
+
+tract_q13 <- tract_access |>
+  select(tract_id, county_fips, households_2024_sim,
+         households_no_vehicle_2024_sim) |>
+  left_join(best_basket, by = "tract_id", relationship = "one-to-one") |>
+  left_join(best_car,    by = "tract_id", relationship = "one-to-one") |>
+  left_join(best_bus,    by = "tract_id", relationship = "one-to-one") |>
+  left_join(nearest,     by = "tract_id", relationship = "one-to-one") |>
+  mutate(
+    evaluable  = !is.na(store_basket),
+    car_switch = store_car != store_basket,
+    # Extra cost of choosing on shelf price alone once the car trip is paid
+    car_extra  = basket_store_car_total - min_car_total,
+    nearest_is_car_best = store_nearest == store_car,
+    bus_status = case_when(
+      is.na(store_basket)       ~ "No eligible store",
+      is.na(store_bus)          ~ "No bus-accessible eligible store",
+      !basket_store_bus_ok      ~ "Basket-cheapest store not on bus",
+      store_bus == store_basket ~ "Same store as basket-only",
+      TRUE                      ~ "Different store than basket-only"
+    ),
+    bus_extra = if_else(
+      bus_status == "Different store than basket-only",
+      basket_store_bus_total - min_bus_total, NA_real_
+    )
+  )
+
+stopifnot(nrow(tract_q13) == nrow(tract_access))
+```
+
+`pick_min()` returns one store per tract. When two stores tie exactly, the lower `store_id` is kept. Tracts with a tied minimum: `r tie_counts["Basket"]` for basket cost and `r tie_counts["Car"]` for car-adjusted cost.
+
+```{r q13-min-costs}
+cost_summary <- function(x, label) {
+  x <- x[!is.na(x)]
+  tibble(Measure = label, Tracts = length(x),
+         Median = median(x), Q1 = quantile(x, 0.25),
+         Q3 = quantile(x, 0.75), Min = min(x), Max = max(x))
+}
+
+min_costs <- bind_rows(
+  cost_summary(tract_q13$min_basket,      "(a) Basket only"),
+  cost_summary(tract_q13$min_car_total,   "(b) Basket + car round trip"),
+  cost_summary(tract_q13$min_bus_total,   "(c) Basket + bus round trip"),
+  cost_summary(tract_q13$car_cost_chosen, "Car cost at store chosen in (b)"),
+  cost_summary(tract_q13$bus_fare_chosen, "Bus fare at store chosen in (c)")
+)
+
+report_table(
+  min_costs, digits = 2,
+  caption = "Tract-level minimum costs in USD (n = evaluable tracts for each row)."
+)
+```
+
+The median tract's cheapest complete essentials basket costs \$`r sprintf("%.2f", median(tract_q13$min_basket, na.rm = TRUE))`. Adding a car round trip raises the median minimum to \$`r sprintf("%.2f", median(tract_q13$min_car_total, na.rm = TRUE))`, and the bus scenario gives \$`r sprintf("%.2f", median(tract_q13$min_bus_total, na.rm = TRUE))` among the `r sum(!is.na(tract_q13$min_bus_total))` tracts where it is evaluable. The rows use different tract samples, so we won't directly compare the bus one to the vehicle one.
+
+## How often does travel change the cheapest store?
+
+```{r q13-switches}
+ev <- filter(tract_q13, evaluable)
+
+switch_table <- tibble(
+  Comparison = c(
+    "Car: cheapest store changes after travel",
+    "Car: nearest candidate is cheapest after travel",
+    "Bus: cheapest store changes after fare (basket-cheapest store on bus)",
+    "Bus: basket-cheapest store not reachable by bus",
+    "Bus: no bus-accessible eligible store"
+  ),
+  Tracts = c(
+    sum(ev$car_switch),
+    sum(ev$nearest_is_car_best),
+    sum(ev$bus_status == "Different store than basket-only"),
+    sum(ev$bus_status == "Basket-cheapest store not on bus"),
+    sum(ev$bus_status == "No bus-accessible eligible store")
+  )
+) |>
+  mutate(Percent = 100 * Tracts / nrow(ev))
+
+report_table(
+  switch_table, digits = c(0, 0, 1),
+  caption = paste0("Changes in the minimizing store; percentages use the ",
+                   nrow(ev), " tracts with at least one eligible candidate.")
+)
+```
+
+For households with a vehicle, the cheapest store changes in `r sum(ev$car_switch)` of `r nrow(ev)` evaluable tracts (`r sprintf("%.1f", 100 * mean(ev$car_switch))`%). The nearest candidate is also the cheapest after car travel in `r sum(ev$nearest_is_car_best)` tracts (`r sprintf("%.1f", 100 * mean(ev$nearest_is_car_best))`%). In the other `r sum(!ev$nearest_is_car_best)`, a farther store is cheaper even after paying for the longer drive, so the nearest store is not always the cheapest trip.
+
+For the bus, the cheapest store changes after the fare in `r sum(ev$bus_status == "Different store than basket-only")` tracts. In another `r sum(ev$bus_status == "Basket-cheapest store not on bus")` tracts, the store with the cheapest basket has no bus service, so a bus rider cannot reach it at all.
+
+```{r q13-plot, fig.height = 5.5}
+# Six tracts where the car trip changes the cheapest store
+switch_tracts <- ev |>
+  filter(car_switch) |>
+  slice_head(n = 6) |>
+  pull(tract_id)
+
+cand |>
+  filter(tract_id %in% switch_tracts) |>
+  left_join(tract_q13 |> select(tract_id, store_basket, store_car),
+            by = "tract_id", relationship = "many-to-one") |>
+  mutate(Role = case_when(
+    store_id == store_basket ~ "Cheapest basket",
+    store_id == store_car    ~ "Cheapest basket + car trip",
+    TRUE                     ~ "Other candidate"
+  )) |>
+  ggplot(aes(y = store_id, color = Role)) +
+  geom_segment(aes(x = basket_cost, xend = car_total, yend = store_id),
+               color = "gray75") +
+  geom_point(aes(x = basket_cost), shape = 1, size = 2) +
+  geom_point(aes(x = car_total), size = 2) +
+  facet_wrap(vars(tract_id), scales = "free_y", ncol = 2) +
+  scale_color_manual(values = c(`Cheapest basket` = "#0072B2",
+                                `Cheapest basket + car trip` = "#D55E00",
+                                `Other candidate` = "gray55")) +
+  labs(
+    title = "Adding the car trip can change which store is cheapest",
+    subtitle = "Open circle = basket only; filled circle = basket + car round trip",
+    x = "Essentials cost (USD)", y = NULL, color = NULL,
+    caption = paste0("Simulated teaching data. First six of the ", sum(ev$car_switch),
+                     " tracts where the car-optimal store differs; April 15, 2025.")
+  ) +
+  theme(legend.position = "bottom", axis.text.y = element_text(size = 7))
+```
+
+In each panel the blue store has the lowest open circle, but a longer drive pushes its filled circle past the orange store, which ends up the cheapest trip.
+
+```{r q13-novehicle}
+no_vehicle_at_risk <- tract_q13 |>
+  group_by(bus_status) |>
+  summarise(
+    Tracts = n(),
+    No_vehicle_households = sum(households_no_vehicle_2024_sim),
+    .groups = "drop"
+  ) |>
+  mutate(Share_pct = 100 * No_vehicle_households /
+           sum(No_vehicle_households))
+
+report_table(
+  no_vehicle_at_risk, digits = c(0, 0, 0, 1),
+  col.names = c("Bus scenario status", "Tracts",
+                "No-vehicle households", "Share of no-vehicle households (%)"),
+  caption = "Simulated 2024 no-vehicle households by tract bus-scenario status."
+)
+```
+
+The car scenario is hypothetical for households without a vehicle. Weighting tracts by their simulated no-vehicle households shows how many such households live where the bus scenario cannot reach the cheapest basket or any eligible basket.
+
+## Interpretation
+
+Transportation can reverse the store ranking. Under the car scenario, the cheapest shelf-price basket is not the cheapest trip in `r sprintf("%.1f", 100 * mean(ev$car_switch))`% of evaluable tracts. Under the bus scenario, the ranking can change because of the fare, and separately because the cheapest basket may not be reachable by bus at all (`r sum(ev$bus_status == "Basket-cheapest store not on bus")` tracts).
+
+A bus alternative with service and a \$0 fare is a real free trip and stays in the comparison. An alternative without service has a blank fare and is excluded; treating it as \$0 would make unreachable stores look like the cheapest trips. Tracts with no bus-accessible eligible store are reported as not evaluable rather than given a cost.
 
 # 14. What is the grocery-affordability story for Yolo County?
 
+All values for Yolo (06113) and the comparison counties are simulated. Ranks and medians use only the 24 study counties; rank 1 is the highest value.
+
+```{r q14-profile}
+yolo_fips <- "06113"
+
+# County essentials-basket summary (complete baskets only)
+county_basket <- basket_costs_2025 |>
+  filter(basket_id == "essentials_12") |>
+  group_by(county_fips) |>
+  summarise(
+    Complete_essentials = sum(coverage == 1),
+    Min_essentials = if (any(coverage == 1)) min(basket_cost[coverage == 1]) else NA_real_,
+    Median_essentials = if (any(coverage == 1)) median(basket_cost[coverage == 1]) else NA_real_,
+    .groups = "drop"
+  )
+
+# County transportation summary from the Question 13 tract table
+county_travel <- tract_q13 |>
+  group_by(county_fips) |>
+  summarise(
+    Evaluable_tracts = sum(evaluable),
+    Car_switch_pct = if (any(evaluable)) 100 * mean(car_switch[evaluable]) else NA_real_,
+    Car_markup = median(min_car_total - min_basket, na.rm = TRUE),
+    No_bus_option_pct = 100 * mean(bus_status %in% c(
+      "No eligible store", "No bus-accessible eligible store")),
+    .groups = "drop"
+  )
+
+county_profile <- county_stores |>
+  select(county_fips, county_name, urban_rural_sim, S_c, N_c, D_c) |>
+  left_join(county_ownership |> select(county_fips, Banners, Owners),
+            by = "county_fips", relationship = "one-to-one") |>
+  left_join(county_q11 |> select(county_fips, Income, Poverty, No_Vehicle),
+            by = "county_fips", relationship = "one-to-one") |>
+  left_join(county_access |> select(county_fips, Weighted, Low_income_low_access_pct),
+            by = "county_fips", relationship = "one-to-one") |>
+  left_join(county_basket, by = "county_fips", relationship = "one-to-one") |>
+  left_join(county_travel, by = "county_fips", relationship = "one-to-one") |>
+  mutate(
+    Complete_essentials = coalesce(Complete_essentials, 0L),
+    # 52 weekly cheapest complete essentials baskets / median household income
+    Burden_pct = 100 * 52 * Min_essentials / Income
+  )
+
+stopifnot(nrow(county_profile) == 24, yolo_fips %in% county_profile$county_fips)
+```
+
+This builds one row per county combining store density, owners, income, poverty, no-vehicle share, low-access share, complete essentials basket costs, and the Question 13 travel results. The burden measure assumes 52 identical weekly essentials baskets bought at the county's cheapest complete store, divided by county median household income. It is a rough affordability index: the 12 essentials are not a full grocery budget, the median household is not a low-income household, and travel is not included.
+
+```{r q14-rank}
+rank_measures <- c(
+  D_c = "Stores per 10,000 residents",
+  Owners = "Distinct owner units",
+  Income = "Median household income (USD)",
+  Poverty = "Poverty rate (%)",
+  No_Vehicle = "No-vehicle households (%)",
+  Weighted = "Low-access residents (%)",
+  Median_essentials = "Median complete essentials basket (USD)",
+  Burden_pct = "52 cheapest baskets / income (%)",
+  Car_switch_pct = "Tracts where car trip changes cheapest store (%)",
+  No_bus_option_pct = "Tracts with no bus-reachable eligible store (%)"
+)
+
+profile_long <- county_profile |>
+  select(county_fips, county_name, all_of(names(rank_measures))) |>
+  pivot_longer(-c(county_fips, county_name),
+               names_to = "Measure", values_to = "Value") |>
+  group_by(Measure) |>
+  mutate(
+    Counties = sum(!is.na(Value)),
+    Rank = min_rank(desc(Value)),
+    Study_median = median(Value, na.rm = TRUE)
+  ) |>
+  ungroup() |>
+  mutate(Measure = factor(rank_measures[Measure], levels = rank_measures))
+
+report_table(
+  profile_long |>
+    filter(county_fips == yolo_fips) |>
+    select(Measure, Value, Study_median, Rank, Counties),
+  digits = 2,
+  col.names = c("Measure", "Yolo", "Study median", "Yolo rank", "Counties ranked"),
+  caption = "Yolo's position among the study counties (rank 1 = highest value)."
+)
+```
+
+Yolo is a high-income county (\$97,900, 4th of 24) with slightly below-median poverty (17.6%) and no-vehicle share (10.1%). Its store density (2.07 per 10,000 residents) and number of owners (5) are close to the study median. Its low-access share (23.6%) is below the median of 26.8%.
+
+Groceries are relatively affordable. The median complete essentials basket (\$57.22) ranks 20th of 24, so only four counties are cheaper, and 52 of the cheapest baskets take about 3.0% of median income compared with a study median of 3.4%.
+
+The two travel measures need care. In most counties no tract changes its cheapest store after a car trip (the median is 0%), so Yolo's 33.3% (2 of 6 tracts) ranks 3rd. Every Yolo tract can reach an eligible store by bus. Its rank of 5 on that measure is a tie: 20 counties are at 0%, and `min_rank()` gives all of them the rank after the four counties with a nonzero value.
+
+```{r q14-comparison}
+# Rule 1: same urban/rural class, closest on standardized income, poverty, no-vehicle %
+z <- function(x) (x - mean(x)) / sd(x)
+
+scored <- county_profile |>
+  mutate(zI = z(Income), zP = z(Poverty), zV = z(No_Vehicle))
+yolo_z <- filter(scored, county_fips == yolo_fips)
+
+socio_comp <- scored |>
+  filter(county_fips != yolo_fips,
+         urban_rural_sim == yolo_z$urban_rural_sim) |>
+  mutate(Distance = sqrt((zI - yolo_z$zI)^2 + (zP - yolo_z$zP)^2 +
+                           (zV - yolo_z$zV)^2)) |>
+  slice_min(Distance, n = 3, with_ties = FALSE) |>
+  mutate(Set = "Socioeconomic match")
+
+# Rule 2: closest store density
+density_comp <- county_profile |>
+  filter(county_fips != yolo_fips) |>
+  mutate(Distance = abs(D_c - yolo_z$D_c)) |>
+  slice_min(Distance, n = 3, with_ties = FALSE) |>
+  mutate(Set = "Density match")
+
+comparison <- bind_rows(
+  county_profile |> filter(county_fips == yolo_fips) |> mutate(Set = "Yolo"),
+  socio_comp,
+  density_comp
+)
+
+report_table(
+  comparison |>
+    select(Set, county_name, urban_rural_sim, D_c, Income, Poverty, No_Vehicle),
+  digits = c(0, 0, 0, 2, 0, 1, 1),
+  col.names = c("Set", "County", "Class", "Stores/10k", "Income (USD)",
+                "Poverty (%)", "No vehicle (%)"),
+  caption = "Comparison counties under two selection rules: profile measures."
+)
+
+report_table(
+  comparison |>
+    select(Set, county_name, Weighted, Complete_essentials,
+           Median_essentials, Burden_pct, Car_switch_pct, No_bus_option_pct),
+  digits = c(0, 0, 1, 0, 2, 1, 1, 1),
+  col.names = c("Set", "County", "Low access (%)", "Complete stores",
+                "Median basket (USD)", "Burden (%)", "Car switch (%)",
+                "No bus option (%)"),
+  caption = "Comparison counties: access, basket, and transportation outcomes."
+)
+```
+
+Ranks show where Yolo sits among all 24 counties. The comparison sets show which counties Yolo should be compared with, using two rules:
+
+1) Socioeconomic match: the three metro counties closest to Yolo in standardized income, poverty, and no-vehicle share (San Mateo, Sutter, El Dorado).
+
+2) Density match: the three counties closest to Yolo in stores per 10,000 residents (Sutter, Glenn, Solano).
+
+Among its socioeconomic peers, Yolo's cheapest essentials basket (\$56.19) is in the middle: Sutter's is cheaper (\$49.16), and San Mateo's (\$60.13) and El Dorado's (\$61.57) cost more. Its burden of 3.0% is also in the middle. Its low-access share (23.6%) is above San Mateo and Sutter (about 20%) and well below El Dorado (32.8%).
+
+The density rule gives a very different picture. Glenn has nearly the same store density as Yolo, but 44.6% of its residents have low access, its burden is 4.8%, and half of its evaluable tracts have no bus-reachable eligible store. Solano matches on density but has a 4.7% burden. Matching on store counts groups Yolo with counties whose affordability and access are quite different, which agrees with Question 12: more stores per resident does not guarantee better access. The comparison set changes the conclusion, so it has to be stated.
+
+```{r q14-plot-distribution, fig.height = 6.5}
+profile_long |>
+  filter(!is.na(Value)) |>
+  mutate(Yolo = county_fips == yolo_fips) |>
+  ggplot(aes(x = Value, y = 0)) +
+  geom_point(data = \(d) filter(d, !Yolo), color = "gray55", alpha = 0.6,
+             position = position_jitter(width = 0, height = 0.2, seed = 141)) +
+  geom_point(data = \(d) filter(d, Yolo), color = "#D55E00", size = 3) +
+  facet_wrap(vars(Measure), scales = "free_x", ncol = 2,
+             labeller = label_wrap_gen(35)) +
+  scale_y_continuous(limits = c(-0.4, 0.4)) +
+  labs(
+    title = "Where Yolo sits among the 24 study counties",
+    subtitle = "Orange = Yolo; gray = other counties (jittered vertically)",
+    x = NULL, y = NULL,
+    caption = paste(
+      "Simulated teaching data. 2024 county/tract profile; April 15, 2025 baskets.",
+      "Basket and burden panels include only counties with a complete essentials store.",
+      sep = "\n"
+    )
+  ) +
+  theme(axis.text.y = element_blank(), panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.border = element_rect(fill = NA, color = "gray80"),
+        panel.spacing = unit(0.8, "lines"))
+```
+
+```{r q14-yolo-stores}
+yolo_stores <- stores_owners |>
+  filter(county_fips == yolo_fips) |>
+  left_join(
+    basket_costs_2025 |>
+      filter(basket_id == "essentials_12") |>
+      select(store_id, observed, required, basket_cost),
+    by = "store_id", relationship = "one-to-one"
+  ) |>
+  arrange(basket_cost, store_id) |>
+  transmute(
+    Store = store_id, Banner = banner_name, Type = store_type,
+    SNAP = snap_authorized_sim,
+    Coverage = sprintf("%d/%d", observed, required),
+    `Essentials (USD)` = basket_cost
+  )
+
+report_table(yolo_stores, digits = 2,
+             caption = "Yolo study stores and essentials coverage, April 15, 2025.")
+```
+
+All seven Yolo study stores are SNAP-authorized, but only the three supermarkets have a complete essentials basket. The two discount stores, the small grocery, and the warehouse store are each missing between 2 and 5 essentials prices, so they cannot be ranked. Daylight Discount had the lower unit price on 21 of 28 shared products in Question 3, yet it is missing 4 of the 12 essentials, so we cannot say whether its basket would be cheapest. The county's basket results describe three supermarkets, not the full store mix.
+
+```{r q14-yolo-tracts}
+yolo_tracts <- tract_q13 |>
+  filter(county_fips == yolo_fips) |>
+  left_join(
+    tract_access |> select(tract_id, tract_population_2024_sim,
+                           low_access_residents_2024_sim),
+    by = "tract_id", relationship = "one-to-one"
+  ) |>
+  mutate(Low_access_pct = 100 * low_access_residents_2024_sim /
+           tract_population_2024_sim)
+
+report_table(
+  yolo_tracts |>
+    select(tract_id, tract_population_2024_sim, Low_access_pct,
+           households_no_vehicle_2024_sim, min_basket, min_car_total,
+           min_bus_total, bus_status),
+  digits = c(0, 0, 1, 0, 2, 2, 2, 0),
+  col.names = c("Tract", "Residents", "Low access (%)", "No-vehicle HH",
+                "Basket (USD)", "+ car (USD)", "+ bus (USD)", "Bus status"),
+  caption = "Yolo tracts: access and minimum essentials trip costs (NA = not evaluable)."
+)
+```
+
+```{r q14-plot-tracts, fig.height = 4}
+yolo_tracts |>
+  select(tract_id, `Basket only` = min_basket,
+         `Basket + car` = min_car_total, `Basket + bus` = min_bus_total) |>
+  pivot_longer(-tract_id, names_to = "Scenario", values_to = "Cost") |>
+  filter(!is.na(Cost)) |>
+  ggplot(aes(x = Cost, y = tract_id, color = Scenario, shape = Scenario)) +
+  geom_point(size = 2.5) +
+  labs(
+    title = "Minimum essentials trip cost for each Yolo tract",
+    subtitle = "Cheapest eligible recorded candidate under each scenario, April 15, 2025",
+    x = "Cost per trip (USD)", y = NULL, color = NULL, shape = NULL,
+    caption = "Simulated teaching data. Missing points are scenarios that are not evaluable."
+  ) +
+  theme(legend.position = "bottom")
+```
+
+Within Yolo, Valley Basket (`S0001`) has the cheapest basket for all six tracts (\$56.19). With a car, tracts `06113000002` and `06113000004` switch to Harvest Foods (`S0003`), because a shorter drive outweighs its \$1.03 higher basket. By bus, tract `06113000002` also switches to Harvest Foods, where its recorded fare is \$0. Three tracts (`...001`, `...004`, `...006`) have a free bus trip to Valley Basket. As a result, the bus trip is cheaper than the car trip in five of the six tracts. Tract-level low-access shares range from 13.9% to 30.9%, and the 1,319 no-vehicle households are concentrated in tracts `...006` (400) and `...001` (286), both of which have a free bus trip to the cheapest store.
+
+## Yolo summary
+
+Yolo's grocery affordability is good relative to the study counties, mostly because of high income and one low-priced complete supermarket. Its cheapest essentials basket is affordable at about 3.0% of median income, and adding the median car markup of \$4.34 per trip raises this only to about 3.2%. Simulated bus service reaches an eligible store from every tract, often for free. There are two limitations. About a quarter of residents are still classified as low access, and the cheapest store per product (a discount store) cannot be evaluated as a basket because of missing prices. The county-level burden and ranks also hide the experience of low-income households. Since all values are simulated and the county has only 6 tracts and 7 stores, these results describe this scenario, not the real Yolo County.
+
 # 15. How can a technically successful join produce statistically incorrect results?
+
+## Join audits
+
+```{r q15-audit}
+join_audit <- function(left, right, by, label, relationship) {
+  joined <- left_join(left, right, by = by, relationship = relationship)
+  tibble(
+    Join = label,
+    Key = paste(by, collapse = " + "),
+    Type = relationship,
+    `Key unique (right)` = !anyDuplicated(right[by]),
+    `Rows left` = nrow(left),
+    `Rows right` = nrow(right),
+    `Rows after` = nrow(joined),
+    `Unmatched left` = nrow(anti_join(left, right, by = by)),
+    `Unmatched right` = nrow(anti_join(right, left, by = by))
+  )
+}
+
+audits <- bind_rows(
+  join_audit(prices, stores, "store_id",
+             "Prices to stores", "many-to-one"),
+  join_audit(prices, products, "product_id",
+             "Prices to products", "many-to-one"),
+  join_audit(county_store_counts, county_context, "county_fips",
+             "Store counts to county context", "one-to-one"),
+  join_audit(county_access |> select(county_fips, Weighted), county_context,
+             "county_fips", "Tract summary to county context", "one-to-one"),
+  join_audit(travel, tract_access, "tract_id",
+             "Travel to tracts", "many-to-one"),
+  join_audit(travel, stores, "store_id",
+             "Travel to stores", "many-to-one")
+)
+
+report_table(audits |> select(Join, Key, Type, `Key unique (right)`),
+             caption = "Join keys and intended relationships.")
+
+report_table(audits |> select(Join, starts_with("Rows"), starts_with("Unmatched")),
+             digits = 0,
+             caption = "Row counts before and after each left join, and unmatched keys.")
+```
+
+Each join that the analysis relies on uses a key that is unique on the right side, keeps the left row count, and leaves no left rows unmatched. The 30 unmatched stores in the travel-to-stores join are stores that are not a recorded alternative for any tract. They are expected and do not mean the join failed. Passing these checks only shows that a join is mechanically correct. The two operations below also run without errors, but each one changes what the rows represent.
+
+## Incorrect operation 1: linking tracts to stores by county only
+
+This joins tracts to stores by county, as many-to-many. Because a county-only join pairs every tract with every store in its county, it creates tract-store pairs that are not recorded alternatives. It also drops recorded alternatives where the store is in a different county from the tract. The anti-join row in the table counts those lost alternatives.
+
+```{r q15-county-join}
+county_links <- tract_access |>
+  select(tract_id, county_fips) |>
+  inner_join(stores |> select(store_id, county_fips),
+             by = "county_fips", relationship = "many-to-many")
+
+recorded_links <- travel |> select(tract_id, store_id)
+
+ess_store_ids <- basket_costs_2025 |>
+  filter(basket_id == "essentials_12", coverage == 1) |>
+  pull(store_id)
+
+link_compare <- tibble(
+  Measure = c(
+    "Tract-store links",
+    "Links that are recorded travel alternatives",
+    "Recorded alternatives missing (cross-county)",
+    "Mean choices per tract (tracts with any link)",
+    "Tracts with at least one complete essentials store"
+  ),
+  `Recorded links` = c(
+    nrow(recorded_links),
+    nrow(recorded_links),
+    0,
+    mean(count(recorded_links, tract_id)$n),
+    n_distinct(recorded_links$tract_id[recorded_links$store_id %in% ess_store_ids])
+  ),
+  `County-only join` = c(
+    nrow(county_links),
+    nrow(semi_join(county_links, recorded_links, by = c("tract_id", "store_id"))),
+    nrow(anti_join(recorded_links, county_links, by = c("tract_id", "store_id"))),
+    mean(count(county_links, tract_id)$n),
+    n_distinct(county_links$tract_id[county_links$store_id %in% ess_store_ids])
+  )
+)
+
+report_table(link_compare, digits = 1,
+             caption = "Recorded travel links versus a county-only store-tract join.")
+```
+
+The county-only join produces `r nrow(county_links)` links instead of the `r nrow(recorded_links)` recorded ones. Only `r nrow(semi_join(county_links, recorded_links, by = c("tract_id", "store_id")))` of them are real alternatives, so `r nrow(county_links) - nrow(semi_join(county_links, recorded_links, by = c("tract_id", "store_id")))` are made-up pairs with no travel cost, and `r nrow(anti_join(recorded_links, county_links, by = c("tract_id", "store_id")))` real cross-county alternatives are lost. The average tract appears to have `r sprintf("%.2f", mean(count(county_links, tract_id)$n))` choices instead of `r sprintf("%.0f", mean(count(recorded_links, tract_id)$n))`. A quick check would not catch this, because both versions give all `r nrow(tract_access)` tracts at least one complete essentials store. Any Question 13 minimum computed from these links would include stores a tract was never recorded as using and leave out cross-county stores it was.
+
+## Incorrect operation 2: summing population after a one-to-many join
+
+The travel file has one row per tract-store alternative, so joining tract attributes onto it repeats each tract's population once for every alternative. The join is a valid many-to-one join, but summing population afterward counts each resident several times.
+
+```{r q15-double-count}
+travel_tracts <- travel |>
+  left_join(tract_access, by = "tract_id", relationship = "many-to-one")
+
+pop_compare <- tibble(
+  Method = c("Sum over the tract file (one row per tract)",
+             "Sum after joining tracts onto travel alternatives"),
+  Rows = c(nrow(tract_access), nrow(travel_tracts)),
+  Residents = c(sum(tract_access$tract_population_2024_sim),
+                sum(travel_tracts$tract_population_2024_sim))
+)
+
+report_table(pop_compare, digits = 0,
+             caption = "Total simulated 2024 tract population, computed two ways.")
+```
+
+The joined table reports `r format(sum(travel_tracts$tract_population_2024_sim), big.mark = ",")` residents, `r sprintf("%.1f", sum(travel_tracts$tract_population_2024_sim) / sum(tract_access$tract_population_2024_sim))` times the true `r format(sum(tract_access$tract_population_2024_sim), big.mark = ",")`. Any population-weighted rate computed from it would also weight tracts by how many alternatives they have rather than by residents. Population totals should be computed at the tract level first and joined afterward, as Questions 10 and 13 do.
+
+Both examples show that a join can run without errors and still give wrong statistics. The relationship type, the meaning of the resulting row, and the denominator have to be checked along with the row counts.
 
 # 16. Formulate an original substantive research question.
 
+**Question.** Do higher-poverty tracts face a larger travel penalty on the cheapest complete essentials trip, and are they more often unable to reach the cheapest basket by bus?
+
+**Chain.**
+
+- **Data:** stores (01), products (03), prices (04), basket items (05), county context (06), tracts (08), and travel (09).
+- **Cleaning:** unit prices from Q2; complete `essentials_12` baskets only (Q4).
+- **Join:** recorded tract–store alternatives only (Q13), with tract poverty from file 08 and county urban/rural class from file 06.
+- **Unit of analysis:** the tract.
+
+```{r q16-data}
+tract_q16 <- tract_q13 |>
+  filter(evaluable) |>
+  left_join(
+    tract_access |> select(tract_id, tract_poverty_rate_pct_2024_sim),
+    by = "tract_id", relationship = "one-to-one"
+  ) |>
+  left_join(
+    county_context |> select(county_fips, urban_rural_sim),
+    by = "county_fips", relationship = "many-to-one"
+  ) |>
+  left_join(
+    count(cand, tract_id, name = "eligible_candidates"),
+    by = "tract_id", relationship = "one-to-one"
+  ) |>
+  mutate(
+    Poverty = tract_poverty_rate_pct_2024_sim,
+    # Extra dollars the car trip adds to the cheapest basket
+    Car_penalty = min_car_total - min_basket,
+    No_bus_to_cheapest = bus_status %in% c(
+      "Basket-cheapest store not on bus", "No bus-accessible eligible store"),
+    Poverty_group = factor(ntile(Poverty, 3), levels = 1:3,
+                           labels = c("Lower poverty", "Middle", "Higher poverty"))
+  )
+
+stopifnot(!anyNA(tract_q16$Poverty), !anyNA(tract_q16$Car_penalty))
+
+variables_q16 <- tribble(
+  ~Variable, ~Definition, ~Denominator,
+  "Poverty group", "Tercile of tract poverty rate (file 08)", "Evaluable tracts",
+  "Car penalty (USD)", "Min (basket + car) minus min basket", "Evaluable tracts",
+  "Car changes store (%)", "Cheapest store differs after car trip", "Evaluable tracts in group",
+  "No bus to cheapest (%)", "Cheapest basket not reachable by bus, or no bus-eligible store", "Evaluable tracts in group",
+  "Eligible candidates", "Recorded alternatives with a complete essentials basket", "Per tract"
+)
+report_table(variables_q16, caption = "Variables and denominators for Question 16.")
+```
+
+```{r q16-summary}
+summarise_q16 <- function(d) {
+  d |>
+    summarise(
+      Tracts = n(),
+      Median_eligible = median(eligible_candidates),
+      Median_poverty = median(Poverty),
+      Median_penalty = median(Car_penalty),
+      IQR_penalty = IQR(Car_penalty),
+      Car_switch_pct = 100 * mean(car_switch),
+      No_bus_pct = 100 * mean(No_bus_to_cheapest),
+      .groups = "drop"
+    )
+}
+
+q16_main <- tract_q16 |> group_by(Poverty_group) |> summarise_q16()
+
+report_table(
+  q16_main, digits = c(0, 0, 0, 1, 2, 2, 1, 1),
+  col.names = c("Group", "Tracts", "Median eligible stores", "Median poverty (%)",
+                "Median car penalty (USD)", "IQR penalty", "Car changes store (%)",
+                "No bus to cheapest (%)"),
+  caption = "Evaluable tracts by poverty tercile, essentials basket, April 15, 2025."
+)
+
+rho_all <- cor(tract_q16$Poverty, tract_q16$Car_penalty, method = "spearman")
+```
+
+Each tercile has 44 or 45 evaluable tracts with a median of 3 or 4 eligible stores, so the groups have similar choice sets. The median car penalty rises slightly from \$5.48 (lower poverty) to \$5.72 (middle) and \$6.17 (higher poverty). This \$0.69 difference is small compared with within-group IQRs of \$3 to \$4, and the Spearman correlation between poverty and penalty is only `r sprintf("%.2f", rho_all)`. The share of tracts where the car trip changes the cheapest store actually falls with poverty (17.8% to 9.1%).
+
+The clearest pattern is in bus access. The share of tracts that cannot reach the cheapest basket by bus rises from 17.8% to 35.6% to 40.9% across the terciles. Higher-poverty tracts do not pay much more per car trip, but they are about twice as likely to be cut off from the cheapest basket by bus.
+
+```{r q16-plot, fig.height = 4}
+ggplot(tract_q16, aes(x = Poverty_group, y = Car_penalty)) +
+  geom_boxplot(outlier.shape = NA, width = 0.5, fill = "gray92") +
+  geom_point(aes(color = No_bus_to_cheapest),
+             position = position_jitter(width = 0.15, height = 0, seed = 141),
+             alpha = 0.7, size = 1.6) +
+  scale_color_manual(values = c(`FALSE` = "gray45", `TRUE` = "#D55E00"),
+                     labels = c("Cheapest basket reachable by bus", "Not reachable by bus")) +
+  labs(
+    title = "Car travel adds a similar penalty across tract poverty groups",
+    subtitle = "Extra cost of the cheapest essentials trip by car, April 15, 2025",
+    x = "Tract poverty tercile (simulated 2024)",
+    y = "Car penalty (USD per trip)",
+    color = NULL,
+    caption = paste0("Simulated teaching data. ", nrow(tract_q16),
+                     " tracts with at least one eligible candidate; one point per tract.")
+  ) +
+  theme(legend.position = "bottom")
+```
+
+```{r q16-sensitivity}
+# Robustness: (1) metro tracts only, removing urban/rural differences;
+# (2) a median split instead of terciles
+q16_metro <- tract_q16 |>
+  filter(urban_rural_sim == "Metro") |>
+  mutate(Poverty_group = factor(ntile(Poverty, 3), levels = 1:3,
+                                labels = c("Lower poverty", "Middle", "Higher poverty"))) |>
+  group_by(Poverty_group) |>
+  summarise_q16() |>
+  mutate(Check = "Metro only (terciles)", .before = 1)
+
+q16_split <- tract_q16 |>
+  mutate(Poverty_group = if_else(Poverty >= median(Poverty),
+                                 "At/above median", "Below median")) |>
+  group_by(Poverty_group) |>
+  summarise_q16() |>
+  mutate(Check = "All tracts (median split)", .before = 1)
+
+rho_metro <- with(filter(tract_q16, urban_rural_sim == "Metro"),
+                  cor(Poverty, Car_penalty, method = "spearman"))
+
+report_table(
+  bind_rows(q16_metro, q16_split) |>
+    select(Check, Poverty_group, Tracts, Median_penalty, Car_switch_pct, No_bus_pct),
+  digits = c(0, 0, 0, 2, 1, 1),
+  col.names = c("Check", "Group", "Tracts", "Median penalty (USD)",
+                "Car changes store (%)", "No bus to cheapest (%)"),
+  caption = "Sensitivity checks for Question 16."
+)
+```
+
+The Spearman correlation between tract poverty and car penalty is `r sprintf("%.2f", rho_all)` across all `r nrow(tract_q16)` evaluable tracts and `r sprintf("%.2f", rho_metro)` within metro counties (`r sum(tract_q16$urban_rural_sim == "Metro")` tracts).
+
+**Robustness.** The small car-penalty gradient does not survive the metro-only check. Within metro counties, the median penalty is nearly flat (\$5.33, \$5.37, \$5.45) and the correlation is about zero. The overall gradient comes from the `r sum(tract_q16$urban_rural_sim == "Nonmetro")` nonmetro tracts, which have a median penalty of about \$10.40 and are mostly in the middle and higher terciles (18 of 20). The bus-access gradient does hold. Within metro counties, the no-bus share still rises from 13.2% to 21.1% to 28.9%, and the median split gives 23.9% below the median versus 38.8% at or above it.
+
+**Alternative explanation.** Poverty is partly a proxy for location. Nonmetro tracts have higher poverty, longer drives, and almost no bus service to the cheapest store (90% of them), so much of the raw difference reflects geography rather than poverty. The metro-only check removes the urban/rural difference but not differences in location within metro counties, such as distance from a transit line.
+
+**Limitations.** The car scenario is hypothetical for no-vehicle households, who are the group most affected by bus access. Penalties are per trip and are not scaled to household income or shopping frequency. Bus travel time is not priced. Terciles of about 45 tracts mean that one tract moves a percentage by about 2 points. The data are simulated and cross-sectional, so the results are descriptive associations, not causal effects.
+
+**Answer.** Higher-poverty tracts do not face a meaningfully larger car penalty once urban/rural location is accounted for. They are, however, more often unable to reach the cheapest complete essentials basket by bus, and this pattern holds within metro counties.
+
+
+
 # 17. Construct a final integrated statistical story.
+
+"Which grocery store is cheapest?" depends on what is compared: a package, a unit price, a complete basket, or a trip from where someone lives. The six figures below build that answer step by step. They draw on stores, products, prices, basket items, county context, tracts, and travel (7 of the 9 files). All data are simulated.
+
+## Figure 1: Package size drives shelf price
+
+```{r q17-fig1, ref.label = "q2-quantity-plo", echo = FALSE, fig.height = 5}
+```
+
+(a) Does a higher shelf price mean a more expensive product? (b) A scatterplot shows the relationship between two numeric variables, package quantity and price, for every record. (c) Larger packages cost more, so shelf prices are not comparable across sizes. (d) This is the starting point: the comparison has to be per base unit. (e) The figure shows only two products, and promotions add more variation.
+
+## Figure 2: Matched unit prices favor one store, but not for every product
+
+```{r q17-fig2, ref.label = "q3-plot", echo = FALSE, fig.height = 6, fig.width = 6.5}
+```
+
+(a) Which of two Yolo stores is cheaper per unit for the same products? (b) A dot plot of paired percentage differences compares the stores only on products both of them carry. (c) Daylight Discount is cheaper for `r sum(matched$R > 0)` of `r nrow(matched)` shared products. (d) Once unit prices make the comparison fair, the cheaper store still differs from product to product, and winning most products does not mean winning the basket: Daylight Discount is missing 4 of the 12 essentials, so it cannot be ranked in Figure 3. (e) Only shared products are compared, so the result depends on overlap and on whether promotions are included.
+
+## Figure 3: Complete baskets
+
+```{r q17-fig3, ref.label = "q4-plot", echo = FALSE, fig.height = 3.5}
+```
+
+(a) Which store is cheapest for a fixed list of products in fixed quantities? (b) A dot plot of complete basket costs, faceted by basket, keeps each comparison within one basket. (c) Valley Basket is cheapest for every basket it can be ranked on. The essentials gap is \$`r sprintf("%.2f", basket_summary$Gap[basket_summary$basket_id == "essentials_12"])`. (d) Quantity weights and completeness now matter, not just how many products a store wins. (e) Stores missing any price cannot be ranked, so the eligible sample shrinks from 3 stores to 2 for the larger baskets.
+
+## Figure 4: Where people live
+
+```{r q17-fig4, ref.label = "q10-plot", echo = FALSE, fig.height = 6}
+```
+
+(a) What share of each county's residents have limited food access? (b) Resident-weighted percentages, shown as dots by county, answer a question about people rather than tracts. (c) County low-access shares range from `r sprintf("%.1f", min(county_access$Weighted))`% to `r sprintf("%.1f", max(county_access$Weighted))`%. (d) A cheap basket only helps if residents can get to the store, so this shifts the focus from stores to households. (e) These are county aggregates, so they do not describe any single household (the ecological fallacy).
+
+## Figure 5: Travel can reverse the ranking
+
+```{r q17-fig5, ref.label = "q13-plot", echo = FALSE, fig.height = 5.5}
+```
+
+(a) Does adding the trip cost change which store is cheapest? (b) A dot plot per candidate store, for six example tracts, shows basket-only and basket-plus-car cost on the same dollar scale. (c) The car-optimal store differs from the basket-optimal store in `r sprintf("%.1f", 100 * mean(ev$car_switch))`% of evaluable tracts. (d) The answer now depends on where the shopper starts. (e) Travel costs are hypothetical, and bus time is not priced.
+
+## Figure 6: Who bears the travel penalty
+
+```{r q17-fig6, ref.label = "q16-plot", echo = FALSE, fig.height = 4}
+```
+
+(a) Is the travel penalty larger in higher-poverty tracts? (b) Boxplots with jittered tract points compare distributions across groups without hiding sample size. (c) The car penalty barely changes with poverty (Spearman `r sprintf("%.2f", rho_all)`, about zero within metro counties), but the orange points, tracts that cannot reach the cheapest basket by bus, become more common: 17.8% of lower-poverty tracts compared with 40.9% of higher-poverty tracts. (d) The burden of travel shows up as lost bus access to the cheapest store more than as a higher car cost. (e) The car scenario is hypothetical for no-vehicle households, and poverty partly stands in for nonmetro location.
+
+## Omitted figures
+
+The Q5–Q9 and Q11–Q12 figures (summary choices, price changes, store types, county density, alternative indicators, and county correlations) describe the store environment rather than the cheapest trip. Several of them rest on only 24 counties, so they were left out to keep the story focused.
+
+## Answer
+
+No single shelf-price comparison identifies the cheapest store, because the answer changes with each step:
+
+- **Unit price** removes package-size differences, but it ranks one product at a time.
+- **Complete basket cost** combines unit prices with fixed quantities, and it can rank only stores with complete coverage.
+- **Transportation-adjusted cost** adds the trip, so the cheapest store differs by tract and by mode of travel.
+- **Access and affordability** ask whether a household can reach that store and pay for the trip relative to its resources, which none of the store-level measures capture.
+
+The study cannot conclude anything about real households or retailers. The prices, stores, populations, and travel costs are simulated. Price coverage is incomplete. Measures come from different vintages (2022 indicators, 2024 profiles, 2025 prices). The relationships are cross-sectional and observational, not causal.
+
+\newpage
+
+# Appendix
+
+## A. Key definitions and rules
+
+- **Unit price** $U_{sjt}$: shelf price divided by package quantity, after converting to the product's comparison base unit (Q2).
+- **Complete basket cost** $B_{sbt} = \sum_{j \in J_b} q_{bj} U_{sjt}$: computed only when store $s$ has a price for every required product on date $t$. Missing prices are never treated as zero (Q4).
+- **Travel-adjusted cost** $T_{ksm} = B_{s,\text{essentials},2025} + F_{ksm}$: computed only for the recorded tract-store alternatives in file 09, never for county-only pairings (Q13, Q15).
+- **Bus eligibility**: an alternative without bus service is excluded, not given a \$0 fare. A recorded \$0 fare with service is a valid free trip (Q13).
+- **Weighted shares**: county access percentages sum residents across tracts before dividing, so they describe people rather than tracts (Q10).
+- **Ties**: when two stores tie on a minimum, the lower `store_id` is kept; no such ties occur in the 2025 essentials data (Q13).
+
+## B. Reproducibility
+
+The report knits from `HW2.Rmd` with the ten CSV files in the same folder. The original files are read once and never modified. All jitter uses seed 141. The code below is every chunk in the order it runs; chunks in Question 17 only reuse earlier figures and are omitted.
+
+## C. Code
+
+```{r appendix-code, results = "asis"}
+# One code block per chunk; a single block for the whole file is too tall for LaTeX
+code_labels <- setdiff(grep("^q17-", knitr::all_labels(), value = TRUE, invert = TRUE),
+                       "appendix-code")
+for (lab in code_labels) {
+  cat("\n**", lab, "**\n\n```r\n",
+      paste(knitr::knit_code$get(lab), collapse = "\n"), "\n```\n", sep = "")
+}
+```
